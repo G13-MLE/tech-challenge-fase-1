@@ -202,7 +202,7 @@ format:
 # Verificar tipos
 typecheck:
 	@echo "Verificando tipos com mypy..."
-	$(UV) run mypy src/ --ignore-missing-imports
+	$(UV) run mypy src/ --explicit-package-bases --ignore-missing-imports
 	@echo "Verificacao de tipos concluida"
 
 # ------------------------------------------------------------------

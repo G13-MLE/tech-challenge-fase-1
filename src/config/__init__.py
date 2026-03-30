@@ -18,16 +18,16 @@ from src.config.mlflow_config import (
     Environment,
     MLflowConfig,
     MLflowConfigError,
-    setup_mlflow,
-    setup_logging,
     get_mlflow_port,
+    setup_logging,
+    setup_mlflow,
 )
 
 __all__ = [
     "Environment",
     "MLflowConfig",
     "MLflowConfigError",
-    "setup_mlflow",
-    "setup_logging",
     "get_mlflow_port",
+    "setup_logging",
+    "setup_mlflow",
 ]

@@ -5,14 +5,18 @@ Baseado nas práticas ensinadas nas aulas de MLflow.
 Supports multiple environments: development, staging, production.
 """
 
-import os
 import logging
+import os
+import warnings
 from enum import Enum
-from typing import Optional
 from pathlib import Path
+from typing import Any, ClassVar
 
 import mlflow
 from mlflow.exceptions import MlflowException
+
+# Constante para validação de porta
+MAX_PORT = 65535
 
 
 class Environment(Enum):
@@ -25,8 +29,6 @@ class Environment(Enum):
 
 class MLflowConfigError(Exception):
     """Exceção customizada para erros de configuração do MLflow."""
-
-    pass
 
 
 class MLflowConfig:
@@ -46,7 +48,7 @@ class MLflowConfig:
         file:./mlruns
     """
 
-    _DEFAULTS = {
+    _DEFAULTS: ClassVar[dict[Environment, dict[str, Any]]] = {
         Environment.DEVELOPMENT: {
             "tracking_uri": "file:./mlruns",
             "artifact_root": "./mlruns",
@@ -71,13 +73,13 @@ class MLflowConfig:
         },
     }
 
-    def __init__(
+    def __init__(  # noqa: PLR0913, PLR0917
         self,
-        tracking_uri: Optional[str] = None,
-        experiment_name: Optional[str] = None,
-        port: Optional[int] = None,
-        host: Optional[str] = None,
-        artifact_root: Optional[str] = None,
+        tracking_uri: str | None = None,
+        experiment_name: str | None = None,
+        port: int | None = None,
+        host: str | None = None,
+        artifact_root: str | None = None,
         environment: Environment = Environment.DEVELOPMENT,
     ):
         self.logger = logging.getLogger(__name__)
@@ -95,7 +97,9 @@ class MLflowConfig:
         self.port = port or int(
             os.getenv("MLFLOW_PORT", str(defaults.get("port", 5000)))
         )
-        self.host = host or os.getenv("MLFLOW_HOST", defaults.get("host", "127.0.0.1"))
+        self.host = host or os.getenv(
+            "MLFLOW_HOST", defaults.get("host", "127.0.0.1")
+        )
         self.artifact_root = artifact_root or os.getenv(
             "MLFLOW_ARTIFACT_ROOT", defaults.get("artifact_root", "./mlruns")
         )
@@ -104,12 +108,17 @@ class MLflowConfig:
         self._validate_config()
 
     @classmethod
-    def for_env(cls, environment: Environment = Environment.DEVELOPMENT, **kwargs):
+    def for_env(
+        cls,
+        environment: Environment = Environment.DEVELOPMENT,
+        **kwargs: Any,
+    ) -> "MLflowConfig":
         """
         Factory method para criar configuração para um ambiente específico.
 
         Args:
-            environment: Ambiente de execução (DEVELOPMENT, STAGING, PRODUCTION)
+            environment: Ambiente de execução
+                (DEVELOPMENT, STAGING, PRODUCTION)
             **kwargs: Argumentos adicionais para sobrescrever defaults
 
         Returns:
@@ -121,7 +130,7 @@ class MLflowConfig:
         return cls(environment=environment, **kwargs)
 
     @classmethod
-    def from_env_vars(cls):
+    def from_env_vars(cls) -> "MLflowConfig":
         """
         Cria configuração a partir de variáveis de ambiente.
 
@@ -130,7 +139,7 @@ class MLflowConfig:
         """
         return cls()
 
-    def _validate_config(self):
+    def _validate_config(self) -> None:
         """Valida a configuração do MLflow."""
         if not self.tracking_uri:
             raise MLflowConfigError("tracking_uri é obrigatório")
@@ -138,19 +147,26 @@ class MLflowConfig:
         if not self.experiment_name:
             raise MLflowConfigError("experiment_name é obrigatório")
 
-        if self.port < 1 or self.port > 65535:
+        if self.port < 1 or self.port > MAX_PORT:
             raise MLflowConfigError(
-                f"Porta inválida: {self.port}. Deve ser entre 1 e65535"
+                f"Porta inválida: {self.port}. Deve ser entre 1 e {MAX_PORT}"
             )
 
         if (
             self.environment == Environment.PRODUCTION
-            and not self.tracking_uri.startswith(("http", "https", "s3", "gs", "azure"))
+            and not self.tracking_uri.startswith(
+                ("http", "https", "s3", "gs", "azure")
+            )
         ):
             self.logger.warning(
-                "PRODUÇÃO: tracking_uri deve usar servidor remoto (http/https/s3/gs/azure). "
+                "PRODUÇÃO: tracking_uri deve usar servidor remoto "
+                "(http/https/s3/gs/azure). "
                 f"Atual: {self.tracking_uri}"
             )
+
+        # Type narrowing assertions for mypy
+        assert self.tracking_uri is not None
+        assert self.experiment_name is not None
 
     def setup(self) -> str:
         """
@@ -167,12 +183,18 @@ class MLflowConfig:
             >>> config = MLflowConfig.for_env(Environment.DEVELOPMENT)
             >>> experiment = config.setup()
         """
+        # Type narrowing assertions for mypy
+        assert self.tracking_uri is not None
+        assert self.experiment_name is not None
+
         try:
             mlflow.set_tracking_uri(self.tracking_uri)
             self.logger.info(f"Tracking URI configurado: {self.tracking_uri}")
 
             mlflow.set_experiment(self.experiment_name)
-            self.logger.info(f"Experimento configurado: {self.experiment_name}")
+            self.logger.info(
+                f"Experimento configurado: {self.experiment_name}"
+            )
 
             self.logger.info(
                 f"MLflow configurado com sucesso - "
@@ -187,7 +209,9 @@ class MLflowConfig:
             raise MLflowConfigError(f"Falha ao configurar MLflow: {e}") from e
         except Exception as e:
             self.logger.error(f"Erro inesperado: {e}")
-            raise MLflowConfigError(f"Erro inesperado na configuração: {e}") from e
+            raise MLflowConfigError(
+                f"Erro inesperado na configuração: {e}"
+            ) from e
 
     def get_artifact_path(self) -> Path:
         """
@@ -196,9 +220,13 @@ class MLflowConfig:
         Returns:
             Path objeto do diretório de artefatos
         """
+        # Type narrowing assertion for mypy
+        assert self.tracking_uri is not None
+
         if self.tracking_uri.startswith("file:"):
             path = self.tracking_uri.replace("file:", "").lstrip("/")
             return Path(path).parent
+        assert self.artifact_root is not None
         return Path(self.artifact_root)
 
 
@@ -216,11 +244,12 @@ def setup_logging(level: int = logging.INFO) -> None:
         level=level,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
+        force=True,
     )
 
 
 def setup_mlflow(
-    experiment_name: Optional[str] = None,
+    experiment_name: str | None = None,
     environment: Environment = Environment.DEVELOPMENT,
 ) -> str:
     """
@@ -260,8 +289,6 @@ def get_mlflow_port() -> int:
     Returns:
         Porta do MLflow UI
     """
-    import warnings
-
     warnings.warn(
         "get_mlflow_port() está deprecado. Use MLflowConfig.port instead.",
         DeprecationWarning,
