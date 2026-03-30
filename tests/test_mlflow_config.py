@@ -313,7 +313,7 @@ class TestGetMlflowPort:
 
     def test_get_mlflow_port_default(self):
         """Test get_mlflow_port returns default port."""
-        with pytest.warns(DeprecationWarning):
+        with pytest.warns(DeprecationWarning, match="deprecado"):
             port = get_mlflow_port()
 
         assert port == 5000
@@ -322,7 +322,7 @@ class TestGetMlflowPort:
         """Test get_mlflow_port reads from environment."""
         with (
             patch.dict(os.environ, {"MLFLOW_PORT": "6000"}),
-            pytest.warns(DeprecationWarning),
+            pytest.warns(DeprecationWarning, match="deprecado"),
         ):
             port = get_mlflow_port()
 
