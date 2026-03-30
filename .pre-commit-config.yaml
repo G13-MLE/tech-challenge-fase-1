@@ -1,0 +1,48 @@
+# Pre-commit hooks configuration
+# Usa uv para garantir ambiente consistente
+#
+# Instalação: uv run pre-commit install
+# Execução manual: uv run pre-commit run --all-files
+
+repos:
+  # Ruff - Linter e formatter (muito rápido, escrito em Rust)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.0
+    hooks:
+      # Linter
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      # Formatter
+      - id: ruff-format
+
+  # MyPy - Verificação de tipos
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.14.0
+    hooks:
+      - id: mypy
+        args: [--ignore-missing-imports]
+        additional_dependencies: []
+
+  # Verificações gerais
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-merge-conflict
+      - id: debug-statements
+      - id: detect-private-key
+
+# Configuração global
+default_language_version:
+  python: python3.13
+
+# CI configuration
+ci:
+  autofix_prs: true
+  autoupdate_commit_msg: 'chore: pre-commit autoupdate'

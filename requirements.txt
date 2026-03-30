@@ -1,0 +1,28 @@
+# ============================================================================
+# Dependencias do projeto
+#
+# Este arquivo e mantido para compatibilidade com pip tradicional.
+#
+# RECOMENDADO: Use 'uv sync' para instalar dependencias automaticamente
+# a partir do pyproject.toml, que e a fonte principal de dependencias.
+#
+# Para instalar com pip tradicional (ambiente virtual ativado):
+#   pip install -e .                   # Dependencias de producao
+#   pip install -e ".[dev]"            # Dependencias de desenvolvimento
+# ============================================================================
+
+# Dependencias de producao (do pyproject.toml)
+fastapi>=0.135.2
+pandas>=2.0.0,<3.0.0
+scikit-learn>=1.8.0
+mlflow>=2.0.0
+
+# Dependencias de desenvolvimento (do pyproject.toml [dependency-groups].dev)
+# Para instalar: pip install -e ".[dev]" ou use 'uv sync'
+#
+# mypy>=1.19.1
+# pre-commit>=4.5.1
+# pytest>=9.0.2
+# ruff>=0.15.8
+# torch>=2.11.0
+# pytest-cov>=7.1.0
