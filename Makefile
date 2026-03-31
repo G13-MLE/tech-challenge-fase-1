@@ -3,9 +3,9 @@
 
 .PHONY: setup mlflow test lint format help
 
-# Variaveis
-MLFLOW_PORT = 5000
-MLFLOW_HOST = 127.0.0.1
+# Variaveis (podem ser sobrescritas via variavel de ambiente)
+MLFLOW_PORT ?= 5000
+MLFLOW_HOST ?= 127.0.0.1
 
 # Help padrao
 help:
