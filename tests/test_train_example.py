@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 from sklearn.ensemble import RandomForestClassifier
 
-from src.config.mlflow_config import Environment, MLflowConfigError
+from src.config.mlflow_config import MLflowConfigError
 from src.train_example import (
     TrainingError,
     evaluate_model,
@@ -330,29 +330,9 @@ class TestTrainExample:
 
             train_example(experiment_name="custom-experiment")
 
-        mock_setup_mlflow.assert_called_once()
-
-    @patch("src.train_example.setup_mlflow")
-    @patch("src.train_example.mlflow")
-    @patch("src.train_example.setup_logging")
-    def test_train_example_staging_environment(
-        self, mock_setup_logging, mock_mlflow, mock_setup_mlflow
-    ):
-        """Test train_example with staging environment."""
-        mock_setup_mlflow.return_value = "test-experiment"
-
-        mock_run = MagicMock()
-        mock_run.info.run_id = "test-run-id"
-        mock_mlflow.active_run.return_value = mock_run
-
-        with patch.object(mock_mlflow, "start_run") as mock_start_run:
-            mock_start_run.__enter__ = MagicMock(return_value=mock_run)
-            mock_start_run.__exit__ = MagicMock(return_value=False)
-
-            train_example(environment=Environment.STAGING)
-
-        call_kwargs = mock_setup_mlflow.call_args[1]
-        assert call_kwargs["environment"] == Environment.STAGING
+        mock_setup_mlflow.assert_called_once_with(
+            experiment_name="custom-experiment"
+        )
 
     @patch("src.train_example.setup_mlflow")
     @patch("src.train_example.setup_logging")
@@ -360,9 +340,10 @@ class TestTrainExample:
         self, mock_setup_logging, mock_setup_mlflow
     ):
         """Test train_example raises TrainingError on config error."""
+
         mock_setup_mlflow.side_effect = MLflowConfigError("Config error")
 
-        with pytest.raises(MLflowConfigError):
+        with pytest.raises(TrainingError, match="Erro inesperado"):
             train_example()
 
     @patch("src.train_example.setup_mlflow")
@@ -371,31 +352,16 @@ class TestTrainExample:
         self, mock_setup_logging, mock_setup_mlflow, caplog
     ):
         """Test train_example logs errors properly."""
+
         mock_setup_mlflow.side_effect = MLflowConfigError("Config error")
 
         with (
             caplog.at_level(logging.ERROR),
-            pytest.raises(MLflowConfigError),
+            pytest.raises(TrainingError),
         ):
             train_example()
 
         assert "Config error" in caplog.text
-
-
-class TestModuleConstants:
-    """Tests for module-level constants and imports."""
-
-    def test_environment_enum_imported(self):
-        """Test Environment is properly imported."""
-        assert Environment.DEVELOPMENT.value == "development"
-        assert Environment.STAGING.value == "staging"
-        assert Environment.PRODUCTION.value == "production"
-
-    def test_max_port_constant_accessible(self):
-        """Test MAX_PORT constant is accessible."""
-        from src.config.mlflow_config import MAX_PORT
-
-        assert MAX_PORT == 65535
 
 
 class TestErrorHandling:
@@ -403,31 +369,13 @@ class TestErrorHandling:
 
     @patch("src.train_example.load_iris")
     def test_load_data_exception(self, mock_load_iris):
-        """Test load_data handles exceptions."""
+        """Test load_data raises exception."""
         mock_load_iris.side_effect = RuntimeError("Failed to load")
 
-        with pytest.raises(TrainingError, match="Falha ao carregar dados"):
+        # load_data no longer wraps exceptions in TrainingError
+        # it lets exceptions bubble up
+        with pytest.raises(RuntimeError, match="Failed to load"):
             load_data()
-
-    def test_train_model_exception(self):
-        """Test train_model handles exceptions."""
-        X_train = "invalid"
-        y_train = "invalid"
-
-        with pytest.raises(TrainingError, match="Falha no treinamento"):
-            train_model(X_train, y_train)  # type: ignore
-
-    def test_evaluate_model_exception(self):
-        """Test evaluate_model handles exceptions."""
-        # Create a mock model that raises error
-        mock_model = MagicMock()
-        mock_model.predict.side_effect = RuntimeError("Prediction failed")
-
-        X_test = MagicMock()
-        y_test = MagicMock()
-
-        with pytest.raises(TrainingError, match="Falha na avaliação"):
-            evaluate_model(mock_model, X_test, y_test)
 
     @patch("src.train_example.mlflow")
     def test_log_to_mlflow_no_active_run(self, mock_mlflow):
@@ -438,19 +386,5 @@ class TestErrorHandling:
         params = {"n_estimators": 100}
         metrics = {"accuracy": 0.9}
 
-        with pytest.raises(MLflowConfigError, match="Nenhum run ativo"):
-            log_to_mlflow(model, params, metrics)
-
-    @patch("src.train_example.mlflow")
-    def test_log_to_mlflow_exception(self, mock_mlflow):
-        """Test log_to_mlflow handles MlflowException."""
-        from mlflow.exceptions import MlflowException
-
-        mock_mlflow.log_params.side_effect = MlflowException("MLflow error")
-
-        model = MagicMock()
-        params = {"n_estimators": 100}
-        metrics = {"accuracy": 0.9}
-
-        with pytest.raises(MLflowConfigError, match="Falha ao logar"):
+        with pytest.raises(TrainingError, match="Nenhum run ativo"):
             log_to_mlflow(model, params, metrics)

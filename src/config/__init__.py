@@ -1,33 +1,28 @@
 """
-Configuração do MLflow para o projeto Tech Challenge Fase 1.
+Configuracao simplificada do MLflow para o projeto Tech Challenge Fase 1.
 
-Este módulo fornece configuração centralizada do MLflow com suporte
-a múltiplos ambientes (development, staging, production).
+Este modulo fornece configuracao basica do MLflow usando um unico servidor
+centralizado. A transicao entre staging e production e feita via Tags e
+Aliases no Model Registry.
 
 Example:
-    >>> from src.config import setup_mlflow, Environment
+    >>> from src.config import setup_mlflow
     >>>
-    >>> # Configuração para desenvolvimento
+    >>> # Configuracao basica
     >>> setup_mlflow()
     >>>
-    >>> # Configuração para produção
-    >>> setup_mlflow(environment=Environment.PRODUCTION)
+    >>> # Com experimento especifico
+    >>> setup_mlflow(experiment_name="meu-experimento")
 """
 
 from src.config.mlflow_config import (
-    Environment,
-    MLflowConfig,
     MLflowConfigError,
-    get_mlflow_port,
     setup_logging,
     setup_mlflow,
 )
 
 __all__ = [
-    "Environment",
-    "MLflowConfig",
     "MLflowConfigError",
-    "get_mlflow_port",
     "setup_logging",
     "setup_mlflow",
 ]

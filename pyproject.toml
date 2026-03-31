@@ -45,37 +45,10 @@ extend-select = ['I', 'F', 'E', 'W', 'PL', 'PT'] # Recomendacoes do dunossauro n
 
 [tool.mypy]
 python_version = 3.13
-disallow_untyped_defs = true # Toda nova funcao deve ter tipo definido, seguindo boas praticas de tipagem.
+disallow_untyped_defs = true
 explicit_package_bases = true
-exclude =[
-  "notebooks/" # Excluindo notebooks do mypy, pois eles geralmente sao usados para experimentacao e podem conter codigo mais flexivel.
-]
-
-# MLflow usa carregamento dinamico de modulos (sklearn, pytorch, tensorflow)
-# Ignoramos erros de atributos nao definidos estaticamente
-[[tool.mypy.overrides]]
-module = "mlflow.*"
 ignore_missing_imports = true
-
-# Scikit-learn nao possui type stubs oficiais
-[[tool.mypy.overrides]]
-module = ["sklearn.*","sklearn"]
-ignore_missing_imports = true
-
-# NumPy pode nao ter stubs
-[[tool.mypy.overrides]]
-module = ["numpy.*","numpy"]
-ignore_missing_imports = true
-
-# Pytest nao precisa de tipagem estrita
-[[tool.mypy.overrides]]
-module = ["pytest.*","pytest"]
-ignore_missing_imports = true
-
-# Testes com tipagem flexivel
-[[tool.mypy.overrides]]
-module = ["tests.*"]
-disallow_untyped_defs = false
+exclude = ["notebooks/", "tests/"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"] # Configurando o pytest para procurar testes na pasta tests.

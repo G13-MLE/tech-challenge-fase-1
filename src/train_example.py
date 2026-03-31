@@ -1,19 +1,16 @@
 """
-Script de exemplo para validar o tracking do MLflow.
-Demonstra as práticas ensinadas nas aulas.
+Script de exemplo para validar o tracking doMLflow.
 
-Este script treina um modelo RandomForest no dataset Iris e loga
-métricas, parâmetros e modelo no MLflow.
+Treina um modelo RandomForest no dataset Iris e loga
+metricas, parametros e modelo noMLflow.
 
 Usage:
     python src/train_example.py
-    python -m src.train_example
+    uv run python src/train_example.py
 
 Environment Variables:
-    MLFLOW_TRACKING_URI: URI do servidor MLflow
-        (default: file:./mlruns)
-    MLFLOW_EXPERIMENT_NAME: Nome do experimento
-        (default: tech-challenge-fase-1)
+   MLFLOW_TRACKING_URI: URI do servidorMLflow
+   MLFLOW_EXPERIMENT_NAME: Nome do experimento
 """
 
 import argparse
@@ -23,9 +20,8 @@ from pathlib import Path
 from typing import Any
 
 import mlflow
-import mlflow.sklearn  # type: ignore[attr-defined]
+import mlflow.sklearn
 import numpy as np
-from mlflow.exceptions import MlflowException
 from sklearn.datasets import load_iris
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (
@@ -36,30 +32,15 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import train_test_split
 
-try:
-    from src.config.mlflow_config import (
-        Environment,
-        MLflowConfig,
-        MLflowConfigError,
-        setup_logging,
-        setup_mlflow,
-    )
-except ImportError:
-    sys.path.append(str(Path(__file__).parent.parent))
-    from src.config.mlflow_config import (
-        Environment,
-        MLflowConfig,
-        MLflowConfigError,
-        setup_logging,
-        setup_mlflow,
-    )
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from src.config.mlflow_config import setup_logging, setup_mlflow
 
 logger = logging.getLogger(__name__)
 
 
 class TrainingError(Exception):
-    """Exceção para erros durante treinamento."""
+    """Excecao para erros durante treinamento."""
 
 
 def load_data(
@@ -69,37 +50,29 @@ def load_data(
     Carrega e divide o dataset Iris.
 
     Args:
-        test_size: Proporção do dataset para teste (0.0 to 1.0)
+        test_size: Proporcao do dataset para teste
         random_state: Seed para reprodutibilidade
 
     Returns:
         Dict com X_train, X_test, y_train, y_test
-
-    Raises:
-        TrainingError: Se falhar ao carregar dados
     """
     logger.info("Carregando dataset Iris...")
 
-    try:
-        X, y = load_iris(return_X_y=True)
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=test_size, random_state=random_state
-        )
+    X, y = load_iris(return_X_y=True)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=test_size, random_state=random_state
+    )
 
-        logger.info(
-            f"Dados carregados: {X_train.shape[0]} treino, "
-            f"{X_test.shape[0]} teste"
-        )
+    logger.info(
+        f"Dados carregados: {X_train.shape[0]} treino, {X_test.shape[0]} teste"
+    )
 
-        return {
-            "X_train": X_train,
-            "X_test": X_test,
-            "y_train": y_train,
-            "y_test": y_test,
-        }
-    except Exception as e:
-        logger.error(f"Erro ao carregar dados: {e}")
-        raise TrainingError(f"Falha ao carregar dados: {e}") from e
+    return {
+        "X_train": X_train,
+        "X_test": X_test,
+        "y_train": y_train,
+        "y_test": y_test,
+    }
 
 
 def train_model(
@@ -113,13 +86,10 @@ def train_model(
     Args:
         X_train: Features de treino
         y_train: Labels de treino
-        params: Parâmetros do modelo (opcional)
+        params: Parametros do modelo (opcional)
 
     Returns:
         Modelo treinado
-
-    Raises:
-        TrainingError: Se falhar durante treinamento
     """
     default_params = {
         "n_estimators": 100,
@@ -128,18 +98,15 @@ def train_model(
         "random_state": 42,
     }
 
-    model_params = {**default_params, **params} if params else default_params
+    model_params = {**default_params, **(params or {})}
 
-    logger.info(f"Treinando modelo com parâmetros: {model_params}")
+    logger.info(f"Treinando modelo com parametros: {model_params}")
 
-    try:
-        model = RandomForestClassifier(**model_params)
-        model.fit(X_train, y_train)
-        logger.info("Modelo treinado com sucesso")
-        return model
-    except Exception as e:
-        logger.error(f"Erro no treinamento: {e}")
-        raise TrainingError(f"Falha no treinamento: {e}") from e
+    model = RandomForestClassifier(**model_params)
+    model.fit(X_train, y_train)
+    logger.info("Modelo treinado com sucesso")
+
+    return model
 
 
 def evaluate_model(
@@ -148,7 +115,7 @@ def evaluate_model(
     y_test: np.ndarray[Any, np.dtype[Any]],
 ) -> dict[str, float]:
     """
-    Avalia o modelo e calcula métricas.
+    Avalia o modelo e calcula metricas.
 
     Args:
         model: Modelo treinado
@@ -156,28 +123,21 @@ def evaluate_model(
         y_test: Labels de teste
 
     Returns:
-        Dict com métricas calculadas
-
-    Raises:
-        TrainingError: Se falhar na avaliação
+        Dict com metricas calculadas
     """
     logger.info("Avaliando modelo...")
 
-    try:
-        y_pred = model.predict(X_test)
+    y_pred = model.predict(X_test)
 
-        metrics = {
-            "accuracy": accuracy_score(y_test, y_pred),
-            "precision": precision_score(y_test, y_pred, average="weighted"),
-            "recall": recall_score(y_test, y_pred, average="weighted"),
-            "f1_score": f1_score(y_test, y_pred, average="weighted"),
-        }
+    metrics = {
+        "accuracy": accuracy_score(y_test, y_pred),
+        "precision": precision_score(y_test, y_pred, average="weighted"),
+        "recall": recall_score(y_test, y_pred, average="weighted"),
+        "f1_score": f1_score(y_test, y_pred, average="weighted"),
+    }
 
-        logger.info(f"Métricas calculadas: {metrics}")
-        return metrics
-    except Exception as e:
-        logger.error(f"Erro na avaliação: {e}")
-        raise TrainingError(f"Falha na avaliação: {e}") from e
+    logger.info(f"Metricas calculadas: {metrics}")
+    return metrics
 
 
 def log_to_mlflow(
@@ -187,79 +147,58 @@ def log_to_mlflow(
     tags: dict[str, str] | None = None,
 ) -> str:
     """
-    Loga modelo, parâmetros e métricas no MLflow.
+    Loga modelo, parametros e metricas no MLflow.
 
     Args:
         model: Modelo treinado
-        params: Parâmetros do modelo
-        metrics: Métricas calculadas
+        params: Parametros do modelo
+        metrics: Metricas calculadas
         tags: Tags adicionais (opcional)
 
     Returns:
         ID do run
-
-    Raises:
-        MLflowConfigError: Se falhar ao logar no MLflow
     """
     logger.info("Logando artefatos no MLflow...")
 
-    try:
-        mlflow.log_params(params)
-        mlflow.log_param("model_type", "RandomForestClassifier")
-        logger.debug(f"Parâmetros logados: {params}")
+    mlflow.log_params(params)
+    mlflow.log_param("model_type", "RandomForestClassifier")
 
-        for metric_name, metric_value in metrics.items():
-            mlflow.log_metric(metric_name, metric_value)
-        logger.debug(f"Métricas logadas: {metrics}")
+    for metric_name, metric_value in metrics.items():
+        mlflow.log_metric(metric_name, metric_value)
 
-        mlflow.sklearn.log_model(
-            sk_model=model,
-            artifact_path="model",
-            registered_model_name=None,
-        )
-        logger.info("Modelo salvo no MLflow")
+    mlflow.sklearn.log_model(
+        sk_model=model,
+        artifact_path="model",
+        registered_model_name=None,
+    )
 
-        if tags:
-            for tag_name, tag_value in tags.items():
-                mlflow.set_tag(tag_name, tag_value)
-            logger.debug(f"Tags definidas: {tags}")
+    if tags:
+        for tag_name, tag_value in tags.items():
+            mlflow.set_tag(tag_name, tag_value)
 
-        active_run = mlflow.active_run()
-        if active_run is None:
-            raise MLflowConfigError("Nenhum run ativo encontrado")
-        run_id = active_run.info.run_id
-        logger.info(f"Run ID: {run_id}")
+    active_run = mlflow.active_run()
+    if active_run is None:
+        raise TrainingError("Nenhum run ativo encontrado")
 
-        return run_id
-    except MlflowException as e:
-        logger.error(f"Erro MLflow: {e}")
-        raise MLflowConfigError(f"Falha ao logar no MLflow: {e}") from e
+    run_id = active_run.info.run_id
+    logger.info(f"Run ID: {run_id}")
+
+    return run_id
 
 
 def train_example(
     experiment_name: str = "validacao-mlflow",
-    environment: Environment = Environment.DEVELOPMENT,
 ) -> dict[str, float]:
     """
     Pipeline completo de treino com MLflow tracking.
 
-    Executa: setup -> load_data -> train -> evaluate -> log
-
     Args:
         experiment_name: Nome do experimento
-        environment: Ambiente de execução
 
     Returns:
-        Dict com métricas do modelo
-
-    Raises:
-        TrainingError: Se falhar durante treinamento
-        MLflowConfigError: Se falhar na configuração do MLflow
+        Dict com metricas do modelo
 
     Example:
-        >>> from src.train_example import train_example
-        >>> from src.config.mlflow_config import Environment
-        >>>
         >>> metrics = train_example()
         >>> print(f"Accuracy: {metrics['accuracy']:.2f}")
     """
@@ -270,10 +209,8 @@ def train_example(
     logger.info("=" * 60)
 
     try:
-        experiment = setup_mlflow(
-            experiment_name=experiment_name, environment=environment
-        )
-        logger.info(f"Experimento: {experiment}")
+        setup_mlflow(experiment_name=experiment_name)
+        logger.info(f"Experimento: {experiment_name}")
 
         data = load_data(test_size=0.2, random_state=42)
 
@@ -294,14 +231,10 @@ def train_example(
             tags = {
                 "versao": "v0.2.0",
                 "autor": "tech-challenge",
-                "environment": environment.value,
                 "framework": "sklearn",
             }
 
             log_to_mlflow(model, params, metrics, tags)
-
-            config = MLflowConfig.for_env(environment)
-            logger.info(f"MLflow UI: http://localhost:{config.port}")
 
             logger.info("=" * 60)
             logger.info("Pipeline completado com sucesso!")
@@ -309,30 +242,21 @@ def train_example(
 
             return metrics
 
-    except (TrainingError, MLflowConfigError) as e:
-        logger.error(f"Erro no pipeline: {e}")
-        raise
     except Exception as e:
-        logger.error(f"Erro inesperado: {e}")
+        logger.error(f"Erro no pipeline: {e}")
         raise TrainingError(f"Erro inesperado no pipeline: {e}") from e
 
 
 def main() -> None:
-    """Entry point para execução via terminal."""
+    """Entry point para execucao via terminal."""
     parser = argparse.ArgumentParser(
-        description="Treina modelo de exemplo com MLflow tracking"
+        description="Treina modelo de exemplo comMLflow tracking"
     )
     parser.add_argument(
         "--experiment",
         "-e",
         default="validacao-mlflow",
         help="Nome do experimento (default: validacao-mlflow)",
-    )
-    parser.add_argument(
-        "--env",
-        choices=["development", "staging", "production"],
-        default="development",
-        help="Ambiente de execução (default: development)",
     )
     parser.add_argument(
         "--verbose", "-v", action="store_true", help="Habilita logs detalhados"
@@ -343,19 +267,11 @@ def main() -> None:
     log_level = logging.DEBUG if args.verbose else logging.INFO
     setup_logging(log_level)
 
-    env_map = {
-        "development": Environment.DEVELOPMENT,
-        "staging": Environment.STAGING,
-        "production": Environment.PRODUCTION,
-    }
-
     try:
-        metrics = train_example(
-            experiment_name=args.experiment, environment=env_map[args.env]
-        )
+        metrics = train_example(experiment_name=args.experiment)
 
         print("\n" + "=" * 60)
-        print("MÉTRICAS FINAIS")
+        print("METRICAS FINAIS")
         print("=" * 60)
         for name, value in metrics.items():
             print(f"  {name}: {value:.4f}")
@@ -363,8 +279,8 @@ def main() -> None:
 
         sys.exit(0)
 
-    except (TrainingError, MLflowConfigError, OSError) as e:
-        logger.error(f"Execução falhou: {e}")
+    except (TrainingError, OSError) as e:
+        logger.error(f"Execucao falhou: {e}")
         sys.exit(1)
 
 
