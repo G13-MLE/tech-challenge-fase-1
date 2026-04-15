@@ -2,9 +2,9 @@
 
 ## Guia Passo a Passo para o Time
 
-**Projeto:** Pipeline end-to-end de ML para previsão de churn em telecomunicações
-**Time:** Grupo 13 (5 membros)
-**Tech Leads:** Eduardo (DevOps) e Fernando (ML)
+**Projeto:** Pipeline end-to-end de ML para previsão de churn em telecomunicações  
+**Time:** Grupo 13 (5 membros)  
+**Tech Leads:** Eduardo (DevOps) e Fernando (ML)  
 **Dataset:** Telco Customer Churn (IBM)
 
 ### Resumo do Time
@@ -500,90 +500,90 @@ SPRINT [X]: [NOME]
 
 ### Sobre o Projeto
 
-**Q: Qual é o objetivo do Tech Challenge?**
+**Q: Qual é o objetivo do Tech Challenge?**  
 A: Construir um pipeline end-to-end de ML para previsão de churn em telecomunicações, desde a análise de dados até a API de predição deployada.
 
-**Q: Quais são as entregas obrigatórias?**
+**Q: Quais são as entregas obrigatórias?**  
 A: Repositório GitHub com código funcional, modelos treinados, API, testes, documentação e vídeo STAR. Deploy em cloud é bônus.
 
-**Q: Qual o dataset usado?**
+**Q: Qual o dataset usado?**  
 A: Telco Customer Churn da IBM (disponível no Kaggle).
 
 ### Sobre Skills
 
-**Q: Não tenho experiência em PyTorch. Vou conseguir?**
+**Q: Não tenho experiência em PyTorch. Vou conseguir?**  
 A: Sim! Agora temos **Fernando + Rafael** como mentores de PyTorch (ambos nível 2+). O pair programming nas sprints 2 e 3 vai te ajudar, e você terá suporte de dois experts.
 
-**Q: Como funciona o nívelamento de skills?**
+**Q: Como funciona o nívelamento de skills?**  
 A: Membros com mais experiência (skill ≥ 2) fazem pair programming com quem está começando (skill 0-1). Todos aprendem e entregam juntos.
 
-**Q: O que acontece se eu não preencher a pesquisa de skills?**
+**Q: O que acontece se eu não preencher a pesquisa de skills?**  
 A: O planejamento fica incompleto e pode afetar a distribuição de tarefas. Preencha assim que possível!
 
 ### Sobre Pair Programming
 
-**Q: Como são formados os pares?**
+**Q: Como são formados os pares?**  
 A: Baseado na pesquisa de skills: mentor (skill ≥ 2) + aprendiz (skill 0-1). Os tech leads supervisionam.
 
-**Q: Quanto tempo dura uma sessão de pair?**
+**Q: Quanto tempo dura uma sessão de pair?**  
 A: Mínimo 1 hora, mas pode ser mais se necessário. Agende com antecedência.
 
-**Q: Posso fazer pair programming sozinho se souber a tecnologia?**
+**Q: Posso fazer pair programming sozinho se souber a tecnologia?**  
 A: Sim, mas é recomendado fazer code review com outro membro mesmo assim.
 
 ### Sobre GitHub e Issues
 
-**Q: Quando criar uma issue?**
+**Q: Quando criar uma issue?**  
 A: Para cada tarefa significativa: bugs, novas features, dúvidas técnicas, documentação. Fique a vontade para criar issues, elas irão passar pelo processo de grooming antes de serem de fato aceitas para Ready.
 
-**Q: Como nomear as issues?**
+**Q: Como nomear as issues?**  
 A: Use prefixos: `[EDA]`, `[MODEL]`, `[API]`, `[TEST]`, `[DOC]`, `[BUG]`. Não é obrigatório mas ajuda, pode usar também as labels do GitHub
 
-**Q: Quando fazer commit?**
+**Q: Quando fazer commit?**  
 A: Faça commits pequenos e frequentes (mínimo 1 por dia de trabalho). Mensagens claras: "feat: adiciona baseline logistic regression".
 
 ### Sobre Rituais
 
-**Q: Quais são os rituais obrigatórios?**
+**Q: Quais são os rituais obrigatórios?**  
 A: Daily (15min), Sprint Planning (início), Sprint Review (final), Retrospectiva (após sprint 4). Pode ser feito assíncrono também.
 
-**Q: Onde acontecem as reuniões?**
+**Q: Onde acontecem as reuniões?**  
 A: No Discord do grupo. Agende com antecedência. Ou assíncrono, para assuntos menos complexos, ou pontuais.
 
-**Q: O que levar para o Status Report?**
+**Q: O que levar para o Status Report?**  
 A: O que você fez desde o último report, o que vai fazer até o próximo, e se tem algum bloqueio. É interessante reportar com antecedência máxima, caso esteja bloqueado em algo.
 
 ### Sobre Entregas
 
-**Q: E se eu não conseguir entregar no prazo?**
+**Q: E se eu não conseguir entregar no prazo?**  
 A: Comunique imediatamente no Discord. Os tech leads podem redistribuir ou ajustar escopo. Não deixe atrasar, ou ficar bloqueado por muito tempo.
 
-**Q: Posso entregar antes do prazo?**
+**Q: Posso entregar antes do prazo?**  
 A: Sim! Quanto antes melhor, assim sobra tempo para revisão e ajustes.
 
-**Q: Como saber se minha entrega está boa?**
+**Q: Como saber se minha entrega está boa?**  
 A: Use os checklists de cada sprint. Se passou em todos os itens, está ótimo! e se tem aval do lead da tarefa.
 
 ### Sobre Tecnologias
 
-**Q: Posso usar outras bibliotecas além das especificadas?**
+**Q: Posso usar outras bibliotecas além das especificadas?**  
 A: Pode, mas mantenha as obrigatórias: PyTorch, FastAPI, scikit-learn, MLflow, pytest, Pandera.
 
-**Q: Preciso usar Docker?**
+**Q: Preciso usar Docker?**  
 A: Altamente recomendado para garantir reprodutibilidade. Eduardo pode ajudar.
 
-**Q: E se eu tiver problema com alguma instalação?**
+**Q: E se eu tiver problema com alguma instalação?**  
 A: Pergunte no canal #tech-challenge no Discord. Alguém do time vai ajudar.
 
 ### Sobre Avaliação
 
-**Q: Como o projeto é avaliado?**
+**Q: Como o projeto é avaliado?**  
 A: Por critérios com pesos: Código (20%), Rede Neural (25%), Pipeline (15%), API (15%), Documentação (10%), Vídeo STAR (10%), Deploy (5% bônus).
 
-**Q: O que é o vídeo STAR?**
+**Q: O que é o vídeo STAR?**  
 A: Apresentação de 5 minutos no formato: Situação, Tarefa, Ação, Resultado. Grave mostrando tela e explicando o projeto.
 
-**Q: O deploy em cloud é obrigatório?**
+**Q: O deploy em cloud é obrigatório?**  
 A: Não, mas vale 5% da nota. Se fizer, use AWS, Azure ou GCP.
 
 ---
@@ -625,7 +625,7 @@ A: Não, mas vale 5% da nota. Se fizer, use AWS, Azure ou GCP.
 | **Team Member** | Bruno | @bruno | Pandas(3), scikit-learn(2) | Médio |
 | **Team Member** | Ygor | @ygor | EDA(2), ML Canvas(2) | Médio |
 
-**Canal Discord:** `#tech-challenge`
+**Canal Discord:** `#tech-challenge`  
 **Comunicação alternativa:** Issues do GitHub (todos têm acesso)
 
 ### Pares de Programação por Sprint
@@ -663,17 +663,17 @@ A: Não, mas vale 5% da nota. Se fizer, use AWS, Azure ou GCP.
    - Adicionar ao Discord do time (novo link enviado)
    - Apresentar estrutura do projeto
    - Sincronizar com pair programming da Sprint 2
-
+   
 2. [ ] **Criar issues para Sprint 0:**
    - Issue #1: Setup do repositório (Eduardo + Ygor)
    - Issue #2: Configuração Docker/Python (Rafael + Bruno)
    - Issue #3: Dataset e validação inicial (Fernando)
-
+   
 3. [ ] **Agendar reunião de kickoff:**
    - Apresentação do plano atualizado
    - Definição de horários para pair programming
    - Alinhamento de expectativas
-
+   
 4. [ ] **Preparação técnica:**
    - Criar template de repositório
    - Configurar MLflow local
@@ -697,5 +697,5 @@ A: Não, mas vale 5% da nota. Se fizer, use AWS, Azure ou GCP.
 
 ---
 
-*Documento criado em: Março 2026*
+*Documento criado em: Março 2026*  
 *Última atualização: 26 de Março de 2026 (inclusão do Rafael e atualização do time para 5 membros)*
