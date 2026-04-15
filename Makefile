@@ -1,7 +1,7 @@
 # Makefile para o TechChallenge Fase 1
 # Comandos essenciais para desenvolvimento
 
-.PHONY: setup test lint format help docker-up docker-down train train-dummy train-mlp train-logistic
+.PHONY: setup test lint format help docker-up docker-down api-up api-down train train-dummy train-mlp train-logistic
 
 # Verifica se o arquivo .env existe
 CHECK_ENV := $(shell test -f .env && echo 1 || echo 0)
@@ -19,6 +19,8 @@ help:
 	@echo "Docker:"
 	@echo "  make docker-up  - Iniciar MLflow em background (requer .env)"
 	@echo "  make docker-down - Parar todos os containers MLflow"
+	@echo "  make api-up     - Iniciar API FastAPI em background com hot-reload"
+	@echo "  make api-down   - Parar container da API"
 	@echo ""
 	@echo "Desenvolvimento:"
 	@echo "  make test       - Rodar testes"
@@ -120,3 +122,16 @@ train-logistic:
 	@echo "[WARN] Modelo ainda em desenvolvimento"
 	@echo "Proximo passo: criar src/pipelines/train_logistic.py"
 	@echo "Treinamento Logistic Regression concluido!"
+	@echo "✅ Containers parados!"
+
+# Iniciar API no Docker
+api-up:
+	@echo "🚀 Iniciando API em background com hot-reload..."
+	docker compose -f docker/docker-compose.api.yml up --build -d
+	@echo "✅ API iniciada! Acesse o Swagger em http://localhost:8000/docs"
+
+# Parar API
+api-down:
+	@echo "🛑 Parando container da API..."
+	docker compose -f docker/docker-compose.api.yml down
+	@echo "✅ API parada!"
