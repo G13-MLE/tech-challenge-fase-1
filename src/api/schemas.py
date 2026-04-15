@@ -2,17 +2,24 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class PredictRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid", strict=True)
+    model_config = ConfigDict(
+        extra="forbid", strict=True, populate_by_name=True
+    )
 
-    customerID: str = Field(..., description="ID único do cliente")
+    customer_id: str = Field(
+        ..., alias="customerID", description="ID único do cliente"
+    )
     tenure: int = Field(
         ..., description="Número de meses que o cliente permaneceu na empresa"
     )
-    MonthlyCharges: float = Field(
-        ..., description="Valor cobrado mensalmente do cliente"
-    )
-    Contract: str = Field(
+    monthly_charges: float = Field(
         ...,
+        alias="MonthlyCharges",
+        description="Valor cobrado mensalmente do cliente",
+    )
+    contract: str = Field(
+        ...,
+        alias="Contract",
         description="Tipo de contrato (ex: Month-to-month)",
     )
 

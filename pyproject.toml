@@ -76,5 +76,10 @@ module = [
     "pandas.*",
     "joblib",
     "joblib.*",
+    "dotenv",
+    "rich.*",
+    "sklearn.*",
+    "numpy.*",
+    "pandas.*"
 ]
 ignore_missing_imports = true
