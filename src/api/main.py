@@ -21,8 +21,14 @@ async def health_check() -> dict[str, str]:
 async def predict(request: PredictRequest) -> PredictResponse:
     """Recebe os dados do cliente e retorna a predição de churn."""
     # TODO: Integrar com o modelo real no futuro
-    # Por enquanto, retornamos valores dummy
+    # Por enquanto, retornamos um mock dinâmico baseado na entrada
+    tenure_threshold = 12
+    churn_threshold = 0.5
+
+    probability = 0.85 if request.tenure < tenure_threshold else 0.15
+    prediction = probability > churn_threshold
+
     return PredictResponse(
-        churn_probability=0.85,
-        churn_prediction=True,
+        churn_probability=probability,
+        churn_prediction=prediction,
     )
