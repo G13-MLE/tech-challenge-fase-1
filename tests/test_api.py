@@ -14,7 +14,7 @@ def test_health_check() -> None:
     assert response.json() == {"status": "healthy"}
 
 
-def test_predict_endpoint() -> None:
+def test_predict_endpoint_high_churn() -> None:
     payload = {
         "customerID": "7590-VHVEG",
         "tenure": 1,
@@ -25,10 +25,25 @@ def test_predict_endpoint() -> None:
     assert response.status_code == status.HTTP_200_OK
 
     data = response.json()
-    assert "churn_probability" in data
-    assert "churn_prediction" in data
-    assert isinstance(data["churn_probability"], float)
-    assert isinstance(data["churn_prediction"], bool)
+    expected_prob = 0.85
+    assert data["churn_probability"] == expected_prob
+    assert data["churn_prediction"] is True
+
+
+def test_predict_endpoint_low_churn() -> None:
+    payload = {
+        "customerID": "1234-ABCDE",
+        "tenure": 15,
+        "MonthlyCharges": 50.00,
+        "Contract": "One year",
+    }
+    response = client.post("/predict", json=payload)
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+    expected_prob = 0.15
+    assert data["churn_probability"] == expected_prob
+    assert data["churn_prediction"] is False
 
 
 def test_predict_endpoint_validation_error() -> None:
