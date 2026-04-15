@@ -95,6 +95,28 @@ except Exception as e:  # noqa: BLE001  # Rare, mark with noqa
 
 ## Project Structure
 
+### Gerenciamento de Ambiente
+- Use arquivo `.env` para configuração local (copie de `.env.example`)
+- Nunca commite arquivos `.env`
+- Use `python-dotenv` para carregar variáveis de ambiente
+- Docker Compose usa arquivo `.env` automaticamente
+
+### Dependências
+- Deps de produção: listadas em `[project] dependencies`
+- Deps de dev: listadas em `[dependency-groups] dev`
+- Use `uv add <package>` para adicionar dependências de produção
+- Use `uv add --dev <package>` para adicionar dependências de dev
+- Arquivo de lock `uv.lock` deve ser commitado
+
+### Fluxo de Trabalho Git
+- **NUNCA faça `git push` sozinho.** Sempre aguarde o usuário pedir ou deixe para que o usuário faça o push.
+- Hooks do pre-commit rodam automaticamente no commit
+- CI corrige automaticamente PRs com pre-commit
+- Use mensagens de commit convencionais
+
+## Arquitetura do Projeto
+
+### Estrutura de Diretórios
 ```
 src/
 ├── api/           # FastAPI (empty - .gitkeep)
