@@ -22,7 +22,7 @@ repos:
       - id: mypy
         args: [--config-file=pyproject.toml]
         exclude: ^tests/
-        additional_dependencies: []
+        additional_dependencies: [fastapi, pydantic]
 
   # Verificações gerais
   - repo: https://github.com/pre-commit/pre-commit-hooks
