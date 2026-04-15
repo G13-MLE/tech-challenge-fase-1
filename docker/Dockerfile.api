@@ -1,0 +1,19 @@
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    PYTHONPATH=/app/src
+
+WORKDIR /app
+
+# Copia os arquivos do projeto para gerenciar dependências
+COPY pyproject.toml uv.lock ./
+
+# Instala apenas as dependências (otimiza o cache do Docker)
+RUN uv sync --frozen --no-install-project --no-dev
+
+# Copia a pasta api
+COPY src/api ./src/api
+
+# Comando padrão para a API
+CMD ["uv", "run", "fastapi", "run", "src/api/main.py", "--host", "0.0.0.0", "--port", "8000"]
