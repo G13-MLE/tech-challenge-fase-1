@@ -225,6 +225,16 @@ uv run python -m src.pipelines.train_mlp \
 - Acurácia, Precisão, Recall, F1-Score, AUC-ROC
 - Visualização no MLflow UI (http://localhost:5000)
 
+### API (FastAPI)
+
+Para testar e desenvolver a API localmente com hot-reload, utilize os seguintes comandos:
+
+```bash
+make api-up       # Sobe o container da API (acessível em http://localhost:8000/docs)
+make api-test     # Envia um payload de teste para o endpoint /predict via cURL
+make api-down     # Para o container da API
+```
+
 ### Desenvolvimento
 
 ```bash

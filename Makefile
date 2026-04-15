@@ -1,7 +1,7 @@
 # Makefile para o TechChallenge Fase 1
 # Comandos essenciais para desenvolvimento
 
-.PHONY: setup test lint format help docker-up docker-down api-up api-down train train-dummy train-mlp train-logistic
+.PHONY: setup test lint format help docker-up docker-down api-up api-down api-test train train-dummy train-mlp train-logistic
 
 # Verifica se o arquivo .env existe
 CHECK_ENV := $(shell test -f .env && echo 1 || echo 0)
@@ -21,6 +21,7 @@ help:
 	@echo "  make docker-down - Parar todos os containers MLflow"
 	@echo "  make api-up     - Iniciar API FastAPI em background com hot-reload"
 	@echo "  make api-down   - Parar container da API"
+	@echo "  make api-test   - Testar endpoint de predição via cURL"
 	@echo ""
 	@echo "Desenvolvimento:"
 	@echo "  make test       - Rodar testes"
@@ -135,3 +136,11 @@ api-down:
 	@echo "🛑 Parando container da API..."
 	docker compose -f docker/docker-compose.api.yml down
 	@echo "✅ API parada!"
+
+# Testar API
+api-test:
+	@echo "🧪 Testando endpoint de predição (/predict)..."
+	curl -X POST "http://localhost:8000/predict" \
+	     -H "Content-Type: application/json" \
+	     -d '{"customerID": "1234-ABCD", "tenure": 5, "MonthlyCharges": 50.0, "Contract": "Month-to-month"}'
+	@echo "\n✅ Teste concluído!"

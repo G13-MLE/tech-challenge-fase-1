@@ -109,7 +109,7 @@ except Exception as e:  # noqa: BLE001  # Rare, mark with noqa
 - Arquivo de lock `uv.lock` deve ser commitado
 
 ### Fluxo de Trabalho Git
-- **NUNCA faça `git push` sozinho.** Sempre aguarde o usuário pedir ou deixe para que o usuário faça o push.
+- **NUNCA crie commits ou faça `git push` sozinho.** Sempre aguarde o usuário pedir ou deixe para que o usuário faça o commit e o push.
 - Hooks do pre-commit rodam automaticamente no commit
 - CI corrige automaticamente PRs com pre-commit
 - Use mensagens de commit convencionais
