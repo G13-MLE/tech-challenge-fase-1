@@ -10,7 +10,7 @@ services:
       # Mapeia apenas a pasta api para hot-reload
       - ../src/api:/app/src/api
     environment:
-      - PYTHONPATH=/app/src
+      - PYTHONPATH=/app
     # Comando de desenvolvimento com hot-reload habilitado no FastAPI
     command: uv run fastapi dev src/api/main.py --host 0.0.0.0 --port 8000
     networks:
