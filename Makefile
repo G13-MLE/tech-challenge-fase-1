@@ -129,7 +129,7 @@ train-logistic:
 api-up:
 	@echo "🚀 Iniciando API em background com hot-reload..."
 	docker compose -f docker/docker-compose.api.yml up --build -d
-	@echo "✅ API iniciada! Acesse o Swagger em http://localhost:8000/docs"
+	@echo "✅ API iniciada! Acesse o Swagger em http://localhost:$${API_PORT:-8000}/docs"
 
 # Parar API
 api-down:
@@ -140,7 +140,7 @@ api-down:
 # Testar API
 api-test:
 	@echo "🧪 Testando endpoint de predição (/predict)..."
-	curl -X POST "http://localhost:8000/predict" \
+	curl -X POST "http://localhost:$${API_PORT:-8000}/predict" \
 	     -H "Content-Type: application/json" \
 	     -d '{"customerID": "1234-ABCD", "tenure": 5, "MonthlyCharges": 50.0, "Contract": "Month-to-month"}'
 	@echo "\n✅ Teste concluído!"

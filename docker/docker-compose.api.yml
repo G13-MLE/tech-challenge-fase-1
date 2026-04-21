@@ -5,7 +5,7 @@ services:
       dockerfile: docker/Dockerfile.api
     container_name: churn-api-dev
     ports:
-      - "8000:8000"
+      - "${API_PORT:-8000}:8000"
     volumes:
       # Mapeia apenas a pasta api para hot-reload
       - ../src/api:/app/src/api
