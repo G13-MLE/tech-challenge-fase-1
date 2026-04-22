@@ -171,31 +171,25 @@ def compute_binary_classification_metrics(
 
     metrics: dict[str, float] = {
         "accuracy": accuracy_score(y_true_bin, y_pred_bin),
-        "precision": precision_score(
-            y_true_bin, y_pred_bin, zero_division=0
-        ),
-        "recall": recall_score(
-            y_true_bin, y_pred_bin, zero_division=0
-        ),
-        "f1_score": f1_score(
-            y_true_bin, y_pred_bin, zero_division=0
-        ),
+        "precision": precision_score(y_true_bin, y_pred_bin, zero_division=0),
+        "recall": recall_score(y_true_bin, y_pred_bin, zero_division=0),
+        "f1_score": f1_score(y_true_bin, y_pred_bin, zero_division=0),
     }
 
     # Adiciona métricas baseadas em probabilidades se disponíveis
     if y_proba_positive is not None:
         y_proba_arr = _to_numpy_array(y_proba_positive)
         try:
-            metrics["roc_auc"] = roc_auc_score(
-                y_true_bin, y_proba_arr
-            )
+            metrics["roc_auc"] = roc_auc_score(y_true_bin, y_proba_arr)
             metrics["pr_auc"] = average_precision_score(
                 y_true_bin, y_proba_arr
             )
+            metrics["brier_score"] = brier_score_loss(y_true_bin, y_proba_arr)
         except ValueError:
-            # AUC indefinido quando há apenas uma classe
+            # AUC indefinido quando ha apenas uma classe
             metrics["roc_auc"] = 0.0
             metrics["pr_auc"] = 0.0
+            metrics["brier_score"] = 0.25
 
     return metrics
 
@@ -324,14 +318,12 @@ def compute_calibration_metrics(
     bin_boundaries = np.linspace(0, 1, n_bins + 1)
     ece = 0.0
     for i in range(n_bins):
-        in_bin = (
-            (y_proba_arr >= bin_boundaries[i])
-            & (y_proba_arr < bin_boundaries[i + 1])
+        in_bin = (y_proba_arr >= bin_boundaries[i]) & (
+            y_proba_arr < bin_boundaries[i + 1]
         )
         if i == n_bins - 1:  # Último bin fecha no 1.0
-            in_bin = (
-                (y_proba_arr >= bin_boundaries[i])
-                & (y_proba_arr <= bin_boundaries[i + 1])
+            in_bin = (y_proba_arr >= bin_boundaries[i]) & (
+                y_proba_arr <= bin_boundaries[i + 1]
             )
         bin_size = np.sum(in_bin)
         if bin_size > 0:
@@ -419,16 +411,15 @@ def analyze_threshold_tradeoff(
     y_true: pd.Series | np.ndarray,
     y_proba_positive: pd.Series | np.ndarray,
     thresholds: np.ndarray | None = None,
+    cost_fn: float = 500.0,
+    cost_fp: float = 50.0,
 ) -> pd.DataFrame:
     """Análise de trade-off precision/recall ao longo de thresholds.
 
     Permite visualizar como precision, recall, f1 e custo estimado
     variam conforme o threshold de decisão muda. Essencial para
     definir o ponto de operação ótimo considerando custos de
-    negócio (ex: threshold mais baixo quando FN é caro).
-
-    # TODO: Ajustar custos reais para coluna total_cost.
-    Atualmente usa custos placeholder de 1.0 para FN e FP.
+    negócio.
 
     Args:
         y_true: Rótulos verdadeiros (0/1).
@@ -436,12 +427,17 @@ def analyze_threshold_tradeoff(
             positiva.
         thresholds: Array de thresholds para avaliar. Se None,
             usa np.arange(0.05, 1.0, 0.05).
+        cost_fn: Custo de cada False Negative (cliente churn
+            não detectado). Default 500 (LTV estimado).
+        cost_fp: Custo de cada False Positive (retenção
+            aplicada em cliente leal). Default 50 (custo de
+            campanha/contato).
 
     Returns:
         DataFrame com colunas:
             - threshold: Limiar de decisão
             - precision, recall, f1_score, accuracy: Métricas
-            - total_cost: Custo estimado com custos placeholder
+            - total_cost: Custo estimado com custos de negocio
             - false_positives, false_negatives: Contagens
     """
     y_true_arr = _to_numpy_array(y_true).astype(int)
@@ -454,24 +450,15 @@ def analyze_threshold_tradeoff(
     for thresh in thresholds:
         y_pred_thresh = (y_proba_arr >= thresh).astype(int)
 
-        prec = precision_score(
-            y_true_arr, y_pred_thresh, zero_division=0
-        )
-        rec = recall_score(
-            y_true_arr, y_pred_thresh, zero_division=0
-        )
-        f1 = f1_score(
-            y_true_arr, y_pred_thresh, zero_division=0
-        )
+        prec = precision_score(y_true_arr, y_pred_thresh, zero_division=0)
+        rec = recall_score(y_true_arr, y_pred_thresh, zero_division=0)
+        f1 = f1_score(y_true_arr, y_pred_thresh, zero_division=0)
         acc = accuracy_score(y_true_arr, y_pred_thresh)
 
-        cm = confusion_matrix(
-            y_true_arr, y_pred_thresh, labels=[0, 1]
-        )
+        cm = confusion_matrix(y_true_arr, y_pred_thresh, labels=[0, 1])
         _tn, fp, fn, _tp = cm.ravel()
 
-        # TODO: Ajustar custos reais em outro PR
-        total_cost = fn * 1.0 + fp * 1.0
+        total_cost = fn * cost_fn + fp * cost_fp
 
         records.append(
             {
@@ -481,9 +468,136 @@ def analyze_threshold_tradeoff(
                 "f1_score": float(f1),
                 "accuracy": float(acc),
                 "total_cost": float(total_cost),
+                "cost_false_negatives": int(fn * cost_fn),
+                "cost_false_positives": int(fp * cost_fp),
                 "false_positives": int(fp),
                 "false_negatives": int(fn),
             }
         )
 
     return pd.DataFrame(records)
+
+
+def compute_precision_at_k(
+    y_true: pd.Series | np.ndarray,
+    y_proba_positive: pd.Series | np.ndarray,
+    k_values: tuple[int, ...] = (
+        100,
+        500,
+        1000,
+        int(0.05 * 1500),
+        int(0.1 * 1500),
+        int(0.2 * 1500),
+    ),
+) -> dict[str, float]:
+    """Precision e Recall nos top-k clientes por probabilidade.
+
+    Args:
+        y_true: Rótulos verdadeiros (0/1).
+        y_proba_positive: Probabilidades preditas para classe positiva.
+        k_values: Tupla de k absolutos ou percentuais.
+
+    Returns:
+        Dicionario com precision@k e recall@k para cada k.
+    """
+    y_true_arr = _to_numpy_array(y_true).astype(int)
+    y_proba_arr = _to_numpy_array(y_proba_positive)
+
+    # Ordena por probabilidade decrescente
+    order = np.argsort(-y_proba_arr)
+    y_true_sorted = y_true_arr[order]
+
+    metrics: dict[str, float] = {}
+    for kv in k_values:
+        n_at_k = min(kv, len(y_true_arr))
+        top_k_true = y_true_sorted[:n_at_k]
+        precision_k = (
+            np.mean(top_k_true) if n_at_k > 0 else 0.0
+        )
+        recall_k = (
+            np.sum(top_k_true) / np.sum(y_true_arr)
+            if np.sum(y_true_arr) > 0
+            else 0.0
+        )
+        metrics[f"precision_at_{kv}"] = float(precision_k)
+        metrics[f"recall_at_{kv}"] = float(recall_k)
+
+    return metrics
+
+
+def predict_risk_band(
+    y_proba_positive: pd.Series | np.ndarray,
+    thresholds: tuple[float, float] = (0.30, 0.60),
+) -> np.ndarray:
+    """Classifica clientes em bandas de risco baseado na probabilidade.
+
+    Args:
+        y_proba_positive: Probabilidades preditas (0-1).
+        thresholds: Tupla com (limiar_medium, limiar_high).
+            Default: (0.30, 0.60).
+
+    Returns:
+        Array com codigos: 0=Low, 1=Medium, 2=High.
+    """
+    y_proba_arr = _to_numpy_array(y_proba_positive)
+    low_thr, high_thr = thresholds
+
+    bands = np.zeros_like(y_proba_arr, dtype=int)
+    bands[y_proba_arr >= low_thr] = 1  # Medium
+    bands[y_proba_arr >= high_thr] = 2  # High
+    return bands
+
+
+def compute_risk_band_metrics(
+    y_true: pd.Series | np.ndarray,
+    y_proba_positive: pd.Series | np.ndarray,
+    thresholds: tuple[float, float] = (0.30, 0.60),
+) -> dict[str, float]:
+    """Métricas por banda de risco.
+
+    Retorna taxa de churn e percentual da populacao em cada banda.
+
+    Args:
+        y_true: Rótulos verdadeiros (0/1).
+        y_proba_positive: Probabilidades preditas.
+        thresholds: Limites para Low/Medium/High.
+
+    Returns:
+        Dicionario com:
+            - pct_low/medium/high: Percentual da amostra em cada banda
+            - churn_rate_low/medium/high: Taxa de churn observada
+            - capture_high: Percentual de churners capturados na banda High
+            - capture_medium_high: Percentual na banda Medium+High
+    """
+    y_true_arr = _to_numpy_array(y_true).astype(int)
+    bands = predict_risk_band(y_proba_positive, thresholds)
+
+    total = len(y_true_arr)
+    total_churners = np.sum(y_true_arr)
+
+    results: dict[str, float] = {}
+    for band_name, band_code in [("low", 0), ("medium", 1), ("high", 2)]:
+        mask = bands == band_code
+        count = np.sum(mask)
+        churn_count = np.sum(y_true_arr[mask])
+        results[f"pct_{band_name}"] = (
+            float(count / total) if total > 0 else 0.0
+        )
+        results[f"churn_rate_{band_name}"] = (
+            float(churn_count / count) if count > 0 else 0.0
+        )
+
+    high_mask = bands == 2  # noqa: PLR2004
+    medium_high_mask = bands >= 1
+    results["capture_high"] = (
+        float(np.sum(y_true_arr[high_mask]) / total_churners)
+        if total_churners > 0
+        else 0.0
+    )
+    results["capture_medium_high"] = (
+        float(np.sum(y_true_arr[medium_high_mask]) / total_churners)
+        if total_churners > 0
+        else 0.0
+    )
+
+    return results

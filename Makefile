@@ -1,7 +1,7 @@
 # Makefile para o TechChallenge Fase 1
 # Comandos essenciais para desenvolvimento
 
-.PHONY: setup test lint format help docker-up docker-down api-up api-down api-test train train-dummy train-mlp train-logistic analyze
+.PHONY: setup test lint format help docker-up docker-down api-up api-down api-test train train-dummy train-mlp train-logistic analyze tune-mlp
 
 # Verifica se o arquivo .env existe
 CHECK_ENV := $(shell test -f .env && echo 1 || echo 0)
@@ -151,3 +151,10 @@ api-test:
 	     -H "Content-Type: application/json" \
 	     -d '{"customerID": "1234-ABCD", "tenure": 5, "MonthlyCharges": 50.0, "Contract": "Month-to-month"}'
 	@echo "\n✅ Teste concluído!"
+
+# Tuning de hiperparametros do MLP com Optuna
+tune-mlp:
+	$(ENV_ERROR)
+	@echo "Tuning de hiperparametros MLP com Optuna..."
+	uv run python -m src.pipelines.run_mlp_tuning --n-trials 20
+	@echo "Tuning concluido! Relatorio em reports/optuna_study.csv"

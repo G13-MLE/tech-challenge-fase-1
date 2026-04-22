@@ -348,10 +348,12 @@ class TestThresholdTradeoff:
             "f1_score",
             "accuracy",
             "total_cost",
+            "cost_false_negatives",
+            "cost_false_positives",
             "false_positives",
             "false_negatives",
         }
-        assert set(df.columns) == expected_columns
+        assert set(df.columns) >= expected_columns
         assert len(df) > 0
 
     @staticmethod

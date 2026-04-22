@@ -91,9 +91,7 @@ def format_timestamp(ts: object) -> str:
         ts_sec = ts.timestamp()
     else:
         ts_sec = float(ts) / 1000
-    return datetime.fromtimestamp(ts_sec, tz=UTC).strftime(
-        "%Y-%m-%d %H:%M:%S"
-    )
+    return datetime.fromtimestamp(ts_sec, tz=UTC).strftime("%Y-%m-%d %H:%M:%S")
 
 
 def get_experiment_names() -> list[str]:
@@ -147,12 +145,10 @@ def _fetch_runs_for_experiment(exp_name: str) -> list[RunSummary]:
                 status=row.get("status", "N/A"),
                 start_time=format_timestamp(row.get("start_time")),
                 metrics={
-                    k.replace("metrics.", ""): v
-                    for k, v in metrics.items()
+                    k.replace("metrics.", ""): v for k, v in metrics.items()
                 },
                 params={
-                    k.replace("params.", ""): v
-                    for k, v in params.items()
+                    k.replace("params.", ""): v for k, v in params.items()
                 },
             )
         )
@@ -163,9 +159,7 @@ def _fetch_runs_for_experiment(exp_name: str) -> list[RunSummary]:
 def _print_experiment_summary(runs: list[RunSummary]) -> None:
     """Imprime uma tabela resumo de runs no terminal."""
     if not runs:
-        console.print(
-            "[WARN] Nenhuma run encontrada para este experimento."
-        )
+        console.print("[WARN] Nenhuma run encontrada para este experimento.")
         return
 
     # Coleta todas as metricas unicas para colunas
@@ -218,14 +212,11 @@ def _print_experiment_summary(runs: list[RunSummary]) -> None:
 
     if best_run_id:
         best_f1 = max(
-            r.metrics.get(
-                "f1_score", r.metrics.get("test_f1_score", -1.0)
-            )
+            r.metrics.get("f1_score", r.metrics.get("test_f1_score", -1.0))
             for r in runs
         )
         console.print(
-            f"[OK] Melhor run: {best_run_id[:8]} "
-            f"(f1_score={best_f1:.4f})"
+            f"[OK] Melhor run: {best_run_id[:8]} (f1_score={best_f1:.4f})"
         )
 
 
@@ -251,9 +242,7 @@ def _get_run_details(run_id: str) -> dict[str, object] | None:
 
 def _print_run_details(details: dict[str, object]) -> None:
     """Imprime os detalhes completos de uma run."""
-    console.print(
-        f"\n[bold cyan]Run: {details['run_name']}[/bold cyan]"
-    )
+    console.print(f"\n[bold cyan]Run: {details['run_name']}[/bold cyan]")
     console.print(f"ID: {details['run_id']}")
     console.print(f"Status: {details['status']}")
     console.print(f"Inicio: {details['start_time']}")
@@ -330,9 +319,7 @@ def analyze_experiments(
             _print_experiment_summary(runs)
             all_runs.extend(runs)
         else:
-            console.print(
-                f"[WARN] Nenhuma run encontrada para: {exp_name}"
-            )
+            console.print(f"[WARN] Nenhuma run encontrada para: {exp_name}")
 
     if output_csv and all_runs:
         df = _build_dataframe(all_runs)
@@ -360,10 +347,7 @@ def parse_args(
         "--output",
         type=str,
         default=_DEFAULT_OUTPUT,
-        help=(
-            "Caminho para salvar o CSV"
-            f" (padrao: {_DEFAULT_OUTPUT})"
-        ),
+        help=(f"Caminho para salvar o CSV (padrao: {_DEFAULT_OUTPUT})"),
     )
     return parser.parse_args(args)
 

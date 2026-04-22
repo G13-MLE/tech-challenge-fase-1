@@ -74,6 +74,7 @@ def test_compute_metrics_returns_all_expected_keys() -> None:
         "f1_score",
         "roc_auc",
         "pr_auc",
+        "brier_score",
     }
 
 
