@@ -72,3 +72,6 @@ docs/
 models/*
 !models/*.dvc
 !models/.gitignore
+
+# Analyze reports
+reports

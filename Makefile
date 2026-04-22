@@ -1,7 +1,7 @@
 # Makefile para o TechChallenge Fase 1
 # Comandos essenciais para desenvolvimento
 
-.PHONY: setup test lint format help docker-up docker-down api-up api-down api-test train train-dummy train-mlp train-logistic
+.PHONY: setup test lint format help docker-up docker-down api-up api-down api-test train train-dummy train-mlp train-logistic analyze
 
 # Verifica se o arquivo .env existe
 CHECK_ENV := $(shell test -f .env && echo 1 || echo 0)
@@ -115,6 +115,13 @@ train-mlp:
 	@echo "Treinando modelo MLP..."
 	uv run python -m src.pipelines.run_mlp
 	@echo "Treinamento MLP concluido!"
+
+# Analisar experimentos do MLflow
+analyze:
+	$(ENV_ERROR)
+	@echo "Analisando experimentos no MLflow..."
+	uv run python -m src.tools.analyze_experiments --output reports/mlflow_analysis.csv
+	@echo "Analise concluida! CSV salvo em reports/mlflow_analysis.csv"
 
 # Futuro: Treinar modelo Logistic Regression
 train-logistic:
