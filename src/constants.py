@@ -18,6 +18,10 @@ POSITIVE_LABEL: str = "Yes"
 # Limiar para converter probabilidades em predicoes binarias
 THRESHOLD: float = 0.5
 
+# Thresholds para bandas de risco do Canvas de ML
+RISK_BAND_LOW: float = 0.30
+RISK_BAND_HIGH: float = 0.60
+
 # Proporcao padrao para split treino/teste
 DEFAULT_TEST_SIZE: float = 0.2
 

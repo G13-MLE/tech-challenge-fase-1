@@ -31,12 +31,12 @@ import pandas as pd
 import torch
 
 from src.configs.config import MLPConfig, TrainingConfig
-
-# Limiar para converter probabilidades em predicoes binarias
 from src.constants import (
     DEFAULT_DATASET_PATH,
     DEFAULT_MLP_EXPERIMENT_NAME,
     RANDOM_SEED,
+    RISK_BAND_HIGH,
+    RISK_BAND_LOW,
     TARGET_COLUMN,
     THRESHOLD,
 )
@@ -55,13 +55,21 @@ from src.pipelines.common import (
     safe_get_dataset_version,
 )
 from src.training import MLPForTraining, MLPTrainer
-from src.training.metrics import compute_binary_classification_metrics
+from src.training.metrics import (
+    analyze_threshold_tradeoff,
+    compute_binary_classification_metrics,
+    compute_calibration_metrics,
+    compute_confusion_matrix,
+    compute_precision_at_k,
+    compute_risk_band_metrics,
+)
 from src.training.mlflow_tracking import (
     MLflowConfig,
     TrainTestData,
     build_mlflow_inputs,
     setup_mlflow,
 )
+from src.training.plots import save_calibration_curve, save_pr_curve
 
 logger = logging.getLogger(__name__)
 
@@ -271,9 +279,117 @@ def main() -> None:  # noqa: PLR0914, PLR0915
         )
         logger.info(f"Metricas de teste: {test_metrics}")
 
-        # Registra metricas de teste no MLflow
+        # --- Metricas adicionais: calibracao e custo ---
+        calib_metrics = compute_calibration_metrics(
+            y_true=y_test_arr, y_proba_positive=probs, n_bins=10
+        )
+        logger.info(f"Metricas de calibracao: {calib_metrics}")
+
+        # Custo estimado: FN = LTV perdido (500), FP = campanha (50)
+        cm = compute_confusion_matrix(y_true=y_test_arr, y_pred=preds)
+        cost_fn = 500.0
+        cost_fp = 50.0
+        total_cost = (
+            cm["false_negatives"] * cost_fn + cm["false_positives"] * cost_fp
+        )
+        logger.info(
+            f"Custo estimado: R$ {total_cost:.2f} "
+            f"(FN: {cm['false_negatives']} x {cost_fn}, "
+            f"FP: {cm['false_positives']} x {cost_fp})"
+        )
+
+        # Precision@k e Recall@k
+        pk_metrics = compute_precision_at_k(
+            y_true=y_test_arr,
+            y_proba_positive=probs,
+            k_values=(
+                100,
+                250,
+                500,
+                int(0.05 * len(y_test_arr)),
+                int(0.10 * len(y_test_arr)),
+                int(0.20 * len(y_test_arr)),
+            ),
+        )
+        logger.info(f"Precision@k/Recall@k: {pk_metrics}")
+
+        # Bandas de risco
+        risk_metrics = compute_risk_band_metrics(
+            y_true=y_test_arr,
+            y_proba_positive=probs,
+            thresholds=(0.30, 0.60),
+        )
+        logger.info(f"Metricas por banda de risco: {risk_metrics}")
+
+        # Analise de threshold tradeoff
+        threshold_df = analyze_threshold_tradeoff(
+            y_true=y_test_arr,
+            y_proba_positive=probs,
+            cost_fn=cost_fn,
+            cost_fp=cost_fp,
+        )
+        # Encontra threshold otimo (minimiza custo)
+        optimal_idx = threshold_df["total_cost"].idxmin()
+        optimal_threshold = threshold_df.loc[optimal_idx, "threshold"]
+        logger.info(
+            f"Threshold otimo (custo): {optimal_threshold} "
+            f"com custo R$ {threshold_df.loc[optimal_idx, 'total_cost']:.2f}"
+        )
+
+        # --- Salva plots como artefatos ---
+        reports_dir = Path("reports")
+        reports_dir.mkdir(parents=True, exist_ok=True)
+        pr_curve_path = reports_dir / "pr_curve_test.png"
+        calib_curve_path = reports_dir / "calibration_curve_test.png"
+        save_pr_curve(y_test_arr, probs, pr_curve_path)
+        save_calibration_curve(y_test_arr, probs, calib_curve_path)
+        logger.info(f"Plots salvos em {reports_dir}")
+
+        # --- Salva CSV com bandas de risco ---
+        risk_df = pd.DataFrame(
+            {
+                "customer_id": df.iloc[y_test.index]["customerID"].values
+                if "customerID" in df.columns
+                else range(len(probs)),
+                "proba_churn": probs,
+                "risk_band": [
+                    "Low" if p < RISK_BAND_LOW
+                    else "Medium" if p < RISK_BAND_HIGH
+                    else "High"
+                    for p in probs
+                ],
+                "true_churn": y_test_arr.astype(int),
+            }
+        )
+        risk_csv_path = reports_dir / "risk_bands_test.csv"
+        risk_df.to_csv(risk_csv_path, index=False)
+        logger.info(f"Bandas de risco salvas em {risk_csv_path}")
+
+        # --- Registra metricas no MLflow ---
         for metric_name, metric_value in test_metrics.items():
             mlflow.log_metric(f"test_{metric_name}", metric_value)
+        for metric_name, metric_value in calib_metrics.items():
+            mlflow.log_metric(f"test_{metric_name}", metric_value)
+        mlflow.log_metric("test_total_cost", total_cost)
+        mlflow.log_metric("test_cost_fn", cm["false_negatives"] * cost_fn)
+        mlflow.log_metric("test_cost_fp", cm["false_positives"] * cost_fp)
+        for metric_name, metric_value in pk_metrics.items():
+            mlflow.log_metric(f"test_{metric_name}", metric_value)
+        for metric_name, metric_value in risk_metrics.items():
+            mlflow.log_metric(f"test_{metric_name}", metric_value)
+        mlflow.log_metric("optimal_threshold_cost", optimal_threshold)
+        mlflow.log_metric(
+            "optimal_threshold_total_cost",
+            threshold_df.loc[optimal_idx, "total_cost"],
+        )
+
+        # === 8. ARTEfatos no MLflow ===
+        mlflow.log_artifact(str(pr_curve_path), artifact_path="plots")
+        mlflow.log_artifact(str(calib_curve_path), artifact_path="plots")
+        mlflow.log_artifact(str(risk_csv_path), artifact_path="reports")
+        threshold_path = reports_dir / "threshold_tradeoff_test.csv"
+        threshold_df.to_csv(threshold_path, index=False)
+        mlflow.log_artifact(str(threshold_path), artifact_path="reports")
 
         # Salva modelo no MLflow registry
         mlflow.pytorch.log_model(model, "model")

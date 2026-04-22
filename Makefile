@@ -127,3 +127,10 @@ train-logistic:
 	@echo "[WARN] Modelo ainda em desenvolvimento"
 	@echo "Proximo passo: criar src/pipelines/train_logistic.py"
 	@echo "Treinamento Logistic Regression concluido!"
+
+# Tuning de hiperparametros do MLP com Optuna
+tune-mlp:
+	$(ENV_ERROR)
+	@echo "Tuning de hiperparametros MLP com Optuna..."
+	uv run python -m src.pipelines.run_mlp_tuning --n-trials 20
+	@echo "Tuning concluido! Relatorio em reports/optuna_study.csv"

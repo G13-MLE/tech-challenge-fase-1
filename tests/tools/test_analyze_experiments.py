@@ -101,9 +101,7 @@ def test_analyze_experiments_run_details(
     run_mock.info.run_id = "abc123"
     run_mock.info.run_name = "detailed-run"
     run_mock.info.status = "FINISHED"
-    run_mock.info.start_time = int(
-        datetime.now(tz=UTC).timestamp() * 1000
-    )
+    run_mock.info.start_time = int(datetime.now(tz=UTC).timestamp() * 1000)
     run_mock.info.end_time = run_mock.info.start_time
     run_mock.data.metrics = {"f1_score": 0.80}
     run_mock.data.params = {"lr": "0.01"}
