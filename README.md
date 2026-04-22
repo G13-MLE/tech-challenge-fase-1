@@ -115,7 +115,6 @@ Referência consolidada com base no `pyproject.toml` atual da branch.
   - `fastapi>=0.135.2`
   - `pandas>=2.3.3`
   - `scikit-learn>=1.8.0`
-  - `protobuf<5.0.0`
 - **Dependências de desenvolvimento:**
   - `mlflow>=3.10.1`
   - `ruff>=0.15.8`
