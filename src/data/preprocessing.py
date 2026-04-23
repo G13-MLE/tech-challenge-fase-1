@@ -19,15 +19,17 @@ if TYPE_CHECKING:
 
 
 def remove_customer_id(df: pd.DataFrame) -> pd.DataFrame:
-    """Remove a coluna customerID do DataFrame.
+    """Remove a coluna customerID do DataFrame se existir.
 
     Args:
-        df: DataFrame bruto com coluna customerID
+        df: DataFrame com ou sem coluna customerID
 
     Returns:
-        DataFrame sem a coluna customerID
+        DataFrame sem a coluna customerID (se existia)
     """
-    return df.drop(columns=["customerID"])
+    if "customerID" in df.columns:
+        return df.drop(columns=["customerID"])
+    return df.copy()
 
 
 def encode_target(df: pd.DataFrame, target_col: str = "Churn") -> pd.DataFrame:
