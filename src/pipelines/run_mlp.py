@@ -192,7 +192,7 @@ def main() -> None:  # noqa: PLR0914, PLR0915
         y_test=y_test_arr,
     )
 
-    # Obtem versao do dataset via DVC
+    # Obtém versão do dataset via DVC
     dataset_version = safe_get_dataset_version()
 
     train_input, test_input = build_mlflow_inputs(

@@ -55,10 +55,10 @@ def main() -> int:
     # Inicializa logging estruturado
     setup_logging()
 
-    # Configuracao do pipeline
+    # Configuração do pipeline
     config = DummyTrainingConfig(target_column=TARGET_COLUMN)
 
-    # Obtem nome do experimento com prioridade
+    # Obtém nome do experimento com prioridade
     experiment_name = get_experiment_name(
         cli_arg=None,
         env_var_name="MLFLOW_DUMMY_EXPERIMENT_NAME",
@@ -80,10 +80,10 @@ def main() -> int:
         config.random_seed,
     )
 
-    # Obtem versao do dataset
+    # Obtém versão do dataset
     dataset_version = safe_get_dataset_version()
 
-    # Treina todas as estratégias e obtem resultados comparativos
+    # Treina todas as estratégias e Obtém resultados comparativos
     results_df = run_all_strategies(
         X_train, X_test, y_train, y_test, config, dataset_version
     )

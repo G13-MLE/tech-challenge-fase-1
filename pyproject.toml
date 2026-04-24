@@ -1,7 +1,7 @@
 [project]
 name = "TechChallenge1ChurnTelco"
 version = "0.1.0"
-description = "Solução Completá para o Tech Challenge 1 da pós-graduação MLE da FIAP."
+description = "Solução Completa para o Tech Challenge 1 da pós-graduação MLE da FIAP."
 readme = "README.md"
 requires-python = ">=3.12,<3.14"
 dependencies = [
@@ -46,7 +46,7 @@ line-length = 79
 
 [tool.ruff.lint]
 preview = true
-extend-select = ['I', 'F', 'E', 'W', 'PL', 'PT'] # Recomendacoes do dunossauro no curso de FASTApi, https://fastapidozero.dunossauro.com/estável/01/?h=ruff#ruff
+extend-select = ['I', 'F', 'E', 'W', 'PL', 'PT'] # Recomendacoes do dunossauro no curso de FASTApi, https://fastapidozero.dunossauro.com/estavel/01/?h=ruff#ruff
 
 [tool.mypy]
 python_version = 3.13
@@ -57,7 +57,7 @@ exclude =[
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
-testpaths = ["tests"] # Configurando o pytest para procurar testes na pastá tests.
+testpaths = ["tests"] # Configurando o pytest para procurar testes na pasta tests.
 
 markers = [
     "slow: Marca para testes lentos, que podem ser executados separadamente para economizar tempo durante o desenvolvimento.",

@@ -45,7 +45,7 @@ class EarlyStopping:
             mais "platô" antes de parar.
         min_delta: Mudança mínima na pontuação para qualificar como
             melhoria. Valores maiores exigem melhorias mais
-            significativas, previnindo resets por ruído.
+            significativas, prevenindo resets por ruído.
             Típico: 0.0001 a 0.01.
         mode: "min" para perda (menor é melhor), "max" para
             métricas como acurácia/F1. Determina como comparar
