@@ -1,8 +1,8 @@
-"""Middleware for per-request latency measurement.
+"""Middleware para medição de latência por requisição.
 
-Measures wall-clock time for each request using
-time.perf_counter() and logs the result as structured JSON.
-Emits WARNING when latency exceeds the SLO threshold.
+Mede o tempo de wall-clock para cada requisição usando
+`time.perf_counter()` e registra o resultado como JSON estruturado.
+Emite WARNING quando a latência ultrapassa o limite de SLO.
 """
 
 from __future__ import annotations
@@ -27,15 +27,15 @@ _DEFAULT_SLO_MS = 500.0
 
 
 class LatencyMiddleware(BaseHTTPMiddleware):
-    """ASGI middleware that measures request latency.
+    """Middleware ASGI que mede a latência de requisições.
 
-    Logs a structured record for every request containing:
+    Registra um registro estruturado para cada requisição contendo:
     - method, path, status_code
-    - latency_ms (wall-clock milliseconds)
-    - slo_ms (threshold)
+    - latency_ms (milisegundos de wall-clock)
+    - slo_ms (limiar)
     - slo_breached (boolean)
 
-    Emits INFO for requests within SLO, WARNING for breaches.
+    Emite INFO para requisições dentro do SLO, WARNING para violações.
     """
 
     def __init__(
@@ -71,8 +71,8 @@ class LatencyMiddleware(BaseHTTPMiddleware):
         }
 
         if slo_breached:
-            logger.warning("SLO breach: %s", log_data)
+            logger.warning("Violação de SLO: %s", log_data)
         else:
-            logger.info("Request completed: %s", log_data)
+            logger.info("Requisição concluída: %s", log_data)
 
         return response

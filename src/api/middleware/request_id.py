@@ -1,8 +1,8 @@
-"""Middleware for request ID generation and propagation.
+"""Middleware para geração e propagação de ID de requisição.
 
-Generates a UUID4 request ID for every incoming request that
-does not already carry an X-Request-ID header. Propagates the
-ID to both the response header and the logging ContextVar.
+Gera um UUID4 como request ID para cada requisição recebida que
+ainda não possua o cabeçalho X-Request-ID. Propaga o
+ID tanto no cabeçalho da resposta quanto na ContextVar de logging.
 """
 
 from __future__ import annotations
@@ -25,13 +25,13 @@ HEADER_NAME = "X-Request-ID"
 
 
 class RequestIDMiddleware(BaseHTTPMiddleware):
-    """ASGI middleware that assigns a request ID to each request.
+    """Middleware ASGI que atribui um request ID a cada requisição.
 
-    If the incoming request already carries an X-Request-ID
-    header, that value is reused (supports distributed tracing).
-    Otherwise, a new UUID4 is generated. The ID is set on:
-    - The logging ContextVar (available to all log records)
-    - The response X-Request-ID header
+    Se a requisição já possuir um cabeçalho X-Request-ID,
+    esse valor é reutilizado (suporta tracing distribuído).
+    Caso contrário, um novo UUID4 é gerado. O ID é definido em:
+    - A ContextVar de logging (disponível em todos os registros de log)
+    - O cabeçalho X-Request-ID da resposta
     """
 
     @override

@@ -1,4 +1,4 @@
-"""Churn Prediction API."""
+"""API de Predição de Churn."""
 
 from __future__ import annotations
 
@@ -20,36 +20,37 @@ logger = logging.getLogger(__name__)
 async def lifespan(
     app: FastAPI,
 ) -> AsyncGenerator[None, None]:
-    """Application lifespan: setup logging on startup."""
+    """Ciclo de vida da aplicação: configura o logging na inicialização."""
     setup_logging(LoggingConfig(json_format=True))
     yield
 
 
 app = FastAPI(
-    title="Churn Prediction API",
+    title="API de Predição de Churn",
     description="API para predição de churn de clientes da Telco",
     version="0.1.0",
     lifespan=lifespan,
 )
 
-# Middleware registration: RequestIDMiddleware added LAST so it
-# runs FIRST on request (inbound) and LAST on response (outbound)
-# in LIFO order of FastAPI. This ensures request_id is set when
-# LatencyMiddleware logs on response completion.
+# Registro de middleware: RequestIDMiddleware adicionado POR ÚLTIMO
+# para que execute PRIMEIRO na requisição (entrada) e POR ÚLTIMO na
+# resposta (saída) na ordem LIFO do FastAPI. Isso garante que o
+# request_id esteja definido quando LatencyMiddleware registrar o
+# log ao completar a resposta.
 app.add_middleware(LatencyMiddleware)
 app.add_middleware(RequestIDMiddleware)
 
 
-@app.get("/health", tags=["Health"])
+@app.get("/health", tags=["Saúde"])
 async def health_check() -> dict[str, str]:
-    """Verifica se a API esta no ar."""
+    """Verifica se a API está no ar."""
     return {"status": "healthy"}
 
 
 @app.post(
     "/predict",
     response_model=PredictResponse,
-    tags=["Prediction"],
+    tags=["Predição"],
 )
 async def predict(
     request: PredictRequest,
@@ -68,7 +69,7 @@ async def predict(
     elapsed_ms = (time.perf_counter() - start) * 1000
 
     logger.info(
-        "Prediction completed: %s",
+        "Predição concluída: %s",
         {
             "customer_id": request.customer_id,
             "tenure": request.tenure,

@@ -551,7 +551,7 @@ A: Daily (15min), Sprint Planning (início), Sprint Review (final), Retrospectiv
 A: No Discord do grupo. Agende com antecedência. Ou assíncrono, para assuntos menos complexos, ou pontuais.
 
 **Q: O que levar para o Status Report?**
-A: O que você fez desde o último report, o que vai fazer até o próximo, e se tem algum bloqueio. É interessante reportar com antecedência máxima, caso estejá bloqueado em algo.
+A: O que você fez desde o último report, o que vai fazer até o próximo, e se tem algum bloqueio. É interessante reportar com antecedência máxima, caso esteja bloqueado em algo.
 
 ### Sobre Entregas
 
@@ -584,7 +584,7 @@ A: Por critérios com pesos: Código (20%), Rede Neural (25%), Pipeline (15%), A
 A: Apresentação de 5 minutos no formato: Situação, Tarefa, Ação, Resultado. Grave mostrando tela e explicando o projeto.
 
 **Q: O deploy em cloud é obrigatório?**
-A: Não, mas vale 5% da notá. Se fizer, use AWS, Azure ou GCP.
+A: Não, mas vale 5% da nota. Se fizer, use AWS, Azure ou GCP.
 
 ---
 

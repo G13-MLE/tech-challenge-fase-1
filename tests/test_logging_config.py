@@ -1,4 +1,4 @@
-"""Tests for src.logging_config module."""
+"""Testes para o módulo src.logging_config."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ _DEFAULT_SLO_MS = 500.0
 
 
 def test_logging_config_defaults() -> None:
-    """LoggingConfig must have sensible defaults."""
+    """LoggingConfig deve ter defaults sensatos."""
     config = LoggingConfig()
     assert config.level == "INFO"
     assert config.json_format is True
@@ -23,7 +23,7 @@ def test_logging_config_defaults() -> None:
 
 
 def test_request_context_filter_injects_request_id() -> None:
-    """RequestContextFilter must add request_id to records."""
+    """RequestContextFilter deve adicionar request_id aos registros."""
     token = request_id_ctx.set("test-req-123")
     try:
         f = RequestContextFilter()
@@ -37,7 +37,7 @@ def test_request_context_filter_injects_request_id() -> None:
 
 
 def test_request_context_filter_default_empty() -> None:
-    """RequestContextFilter must use empty string when no ID set."""
+    """RequestContextFilter usa string vazia quando ID nao estiver definido."""
     token = request_id_ctx.set("")
     try:
         f = RequestContextFilter()
@@ -51,7 +51,7 @@ def test_request_context_filter_default_empty() -> None:
 
 
 def test_setup_logging_json_format(monkeypatch: object) -> None:
-    """setup_logging with json_format must use JSON formatter."""
+    """setup_logging com json_format deve usar formatador JSON."""
     monkeypatch.setenv("LOG_LEVEL", "DEBUG")
     monkeypatch.setenv("LOG_FORMAT", "json")
     setup_logging()
@@ -64,7 +64,7 @@ def test_setup_logging_json_format(monkeypatch: object) -> None:
 
 
 def test_setup_logging_text_format(monkeypatch: object) -> None:
-    """setup_logging with text format must use standard formatter."""
+    """setup_logging com formato text deve usar formatador padrão."""
     monkeypatch.setenv("LOG_LEVEL", "INFO")
     monkeypatch.setenv("LOG_FORMAT", "text")
     setup_logging()
@@ -77,7 +77,7 @@ def test_setup_logging_text_format(monkeypatch: object) -> None:
 
 
 def test_setup_logging_idempotent() -> None:
-    """Repeated setup_logging calls must not duplicate handlers."""
+    """Chamadas repetidas de setup_logging não devem duplicar handlers."""
     setup_logging(LoggingConfig())
     setup_logging(LoggingConfig())
     root = logging.getLogger()
@@ -85,7 +85,7 @@ def test_setup_logging_idempotent() -> None:
 
 
 def test_setup_logging_respects_level() -> None:
-    """setup_logging with explicit config must honor level."""
+    """setup_logging com config explícita deve respeitar o level."""
     config = LoggingConfig(level="WARNING", json_format=False)
     setup_logging(config)
     root = logging.getLogger()

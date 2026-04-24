@@ -1,6 +1,6 @@
-"""API middleware package.
+"""Pacote de middlewares da API.
 
-Re-exports middleware classes for convenient import:
+Re-exporta as classes de middleware para importação conveniente:
     from src.api.middleware import (
         RequestIDMiddleware, LatencyMiddleware,
     )

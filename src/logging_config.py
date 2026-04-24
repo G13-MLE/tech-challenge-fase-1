@@ -1,8 +1,8 @@
-"""Centralized logging configuration for structured JSON output.
+"""Configuração centralizada de logging para saída JSON estruturada.
 
-Provides LoggingConfig, setup_logging(), RequestContextFilter,
-and the request_id_ctx ContextVar for cross-cutting request
-tracing across pipeline scripts and the FastAPI application.
+Fornece LoggingConfig, setup_logging(), RequestContextFilter,
+e a ContextVar request_id_ctx para rastreamento de requisições
+cross-cutting entre scripts de pipeline e a aplicação FastAPI.
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ from pythonjsonlogger.json import JsonFormatter
 if TYPE_CHECKING:
     from logging import Formatter
 
-# ContextVar for request tracing across log records
+# ContextVar para rastreamento de requisições entre registros de log
 request_id_ctx: contextvars.ContextVar[str] = contextvars.ContextVar(
     "request_id", default=""
 )
@@ -26,14 +26,14 @@ request_id_ctx: contextvars.ContextVar[str] = contextvars.ContextVar(
 
 @dataclass(frozen=True)
 class LoggingConfig:
-    """Configuration for structured logging setup.
+    """Configuração para setup de logging estruturado.
 
-    Attributes:
-        level: Log level string (DEBUG, INFO, WARNING, ERROR).
-        json_format: If True, emit JSON logs; else human-readable
-            text format suitable for local development.
-        slo_ms: Latency SLO threshold in milliseconds. Logs
-            exceeding this emit a WARNING instead of INFO.
+    Atributos:
+        level: String do nível de log (DEBUG, INFO, WARNING, ERROR).
+        json_format: Se True, emite logs JSON; caso contrário,
+            formato de texto legível para desenvolvimento local.
+        slo_ms: Limiar de latência SLO em milisegundos. Logs
+            que excederem emitem WARNING em vez de INFO.
     """
 
     level: str = "INFO"
@@ -42,12 +42,12 @@ class LoggingConfig:
 
 
 class RequestContextFilter(logging.Filter):
-    """Injects request_id into every log record.
+    """Injeta request_id em todo registro de log.
 
-    Reads the current value of request_id_ctx and adds it
-    to the LogRecord as an attribute. This allows JSON
-    formatters and text formatters to include request_id
-    without coupling log call sites to the context variable.
+    Lê o valor atual de request_id_ctx e o adiciona ao
+    LogRecord como um atributo. Isso permite que formatadores
+    JSON e de texto incluam request_id sem acoplar os locais
+    de chamada de log à variável de contexto.
     """
 
     @override
@@ -57,11 +57,11 @@ class RequestContextFilter(logging.Filter):
 
 
 def _json_formatter() -> Formatter:
-    """Create a JSON formatter with standard fields.
+    """Cria um formatador JSON com campos padrão.
 
-    Fields included: timestamp, level, logger,
-    message, request_id. Any extra kwargs passed to
-    log calls appear as additional top-level keys.
+    Campos incluídos: timestamp, level, logger,
+    message, request_id. Quaisquer kwargs extras passados
+    para chamadas de log aparecem como chaves adicionais.
     """
     fmt = JsonFormatter(
         fmt="%(asctime)s %(levelname)s %(name)s %(message)s",
@@ -75,10 +75,10 @@ def _json_formatter() -> Formatter:
 
 
 def _text_formatter() -> Formatter:
-    """Create a human-readable text formatter for local dev.
+    """Cria um formatador de texto legível para desenvolvimento local.
 
-    Includes request_id when present; otherwise compact
-    output suitable for terminal reading.
+    Inclui request_id quando presente; caso contrário,
+    saída compacta adequada para leitura no terminal.
     """
     return logging.Formatter(
         fmt=(
@@ -89,18 +89,18 @@ def _text_formatter() -> Formatter:
 
 
 def setup_logging(config: LoggingConfig | None = None) -> None:
-    """Configure the root logger for structured output.
+    """Configura o root logger para saída estruturada.
 
-    Sets up the root logger with a RequestContextFilter
-    and either a JSON or text formatter based on config.
-    Safe to call multiple times (idempotent on repeat calls).
+    Configura o root logger com um RequestContextFilter
+    e um formatador JSON ou de texto baseado na configuração.
+    Seguro para chamar múltiplas vezes (idempotente em chamadas repetidas).
 
     Args:
-        config: LoggingConfig instance. If None, reads from
-            environment variables:
-            - LOG_LEVEL (default: INFO)
-            - LOG_FORMAT (default: json, accepts text)
-            - PREDICTION_SLO_MS (default: 500.0)
+        config: Instância de LoggingConfig. Se None, lê das
+            variáveis de ambiente:
+            - LOG_LEVEL (padrão: INFO)
+            - LOG_FORMAT (padrão: json, aceita text)
+            - PREDICTION_SLO_MS (padrão: 500.0)
     """
     if config is None:
         config = LoggingConfig(
@@ -112,7 +112,7 @@ def setup_logging(config: LoggingConfig | None = None) -> None:
     root_logger = logging.getLogger()
     root_logger.setLevel(getattr(logging, config.level, logging.INFO))
 
-    # Remove existing handlers to avoid duplicate output
+    # Remove handlers existentes para evitar saída duplicada
     root_logger.handlers.clear()
 
     handler = logging.StreamHandler()
@@ -121,11 +121,11 @@ def setup_logging(config: LoggingConfig | None = None) -> None:
     else:
         handler.setFormatter(_text_formatter())
 
-    # Attach request context filter to all handlers
+    # Anexa o filtro de contexto de requisição a todos os handlers
     handler.addFilter(RequestContextFilter())
 
     root_logger.addHandler(handler)
 
-    # Silence overly noisy third-party loggers
+    # Silencia loggers de terceiros excessivamente barulhentos
     for noisy in ("urllib3", "botocore"):
         logging.getLogger(noisy).setLevel(logging.WARNING)
