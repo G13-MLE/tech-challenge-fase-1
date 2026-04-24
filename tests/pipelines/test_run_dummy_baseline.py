@@ -175,6 +175,10 @@ def test_main_returns_zero_with_monkeypatched_flow(
         lambda _: None,
     )
     monkeypatch.setattr(
+        "src.pipelines.run_dummy_baseline.setup_logging",
+        lambda: None,
+    )
+    monkeypatch.setattr(
         "src.pipelines.run_dummy_baseline.run_all_strategies",
         lambda *args, **kwargs: pd.DataFrame(
             {

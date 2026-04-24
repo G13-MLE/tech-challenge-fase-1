@@ -6,6 +6,7 @@ estratégias do DummyClassifier com tracking no MLflow.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any
 
@@ -15,6 +16,8 @@ from sklearn.dummy import DummyClassifier
 
 from src.constants import POSITIVE_LABEL, RANDOM_SEED
 from src.training.metrics import compute_binary_classification_metrics
+
+logger = logging.getLogger(__name__)
 
 STRATEGIES = ("most_frequent", "stratified", "uniform")
 
@@ -135,10 +138,11 @@ def run_all_strategies(  # noqa: PLR0913, PLR0917
 
         results.append({"strategy": strategy, **metrics})
 
-        print(
-            f"[Dummy Baseline] Estratégia {strategy}: "
-            f"accuracy={metrics['accuracy']:.4f}, "
-            f"f1={metrics['f1_score']:.4f}"
+        logger.info(
+            "Estrategia %s: accuracy=%.4f f1=%.4f",
+            strategy,
+            metrics["accuracy"],
+            metrics["f1_score"],
         )
 
     results_df = pd.DataFrame(results).sort_values(

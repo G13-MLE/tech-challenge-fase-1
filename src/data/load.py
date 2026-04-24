@@ -52,5 +52,12 @@ def load_telco_data(
 
 
 if __name__ == "__main__":  # pragma: no cover
-    df = load_telco_data()
-    print(df.head())
+    import logging
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    )
+    _logger = logging.getLogger(__name__)
+    _df = load_telco_data()
+    _logger.info("Dados carregados:\n%s", _df.head().to_string())

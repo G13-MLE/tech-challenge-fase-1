@@ -13,6 +13,7 @@ dependencies = [
     "scikit-learn>=1.8.0",
     "protobuf<5.0.0",
     "marimo>=0.23.3",
+    "python-json-logger>=3.2.1",
 ]
 authors = [
   {name = "Fernando Failla Foschiani", email = "fefailla68@gmail.com"}
@@ -86,6 +87,7 @@ module = [
     "pandas.*",
     "joblib",
     "joblib.*",
+    "pythonjsonlogger.*",
     "dotenv",
     "rich.*",
     "sklearn.*",

@@ -49,6 +49,7 @@ from src.data.preprocessing import (
 )
 from src.data.splitting import split_train_test_stratified
 from src.data.validation import validate_required_columns
+from src.logging_config import setup_logging
 from src.pipelines.common import (
     get_experiment_name,
     load_dotenv_silent,
@@ -111,6 +112,9 @@ def main() -> None:  # noqa: PLR0914, PLR0915
 
     # Carrega variaveis de ambiente (.env)
     load_dotenv_silent()
+
+    # Inicializa logging estruturado
+    setup_logging()
 
     # === SEED GLOBAL PARA REPRODUTIBILIDADE ===
     # Define seed no inicio do pipeline para garantir reproducibilidade
@@ -404,5 +408,4 @@ def main() -> None:  # noqa: PLR0914, PLR0915
 
 
 if __name__ == "__main__":  # pragma: no cover
-    logging.basicConfig(level=logging.INFO)
     main()
