@@ -60,7 +60,7 @@ def test_analyze_dummy(tmp_path):
             2,
         )
         == _EXPECTED_DUMMY_ACCURACY
-    )  # noqa: E501
+    )
 
 
 def test_analyze_mlp(tmp_path):
