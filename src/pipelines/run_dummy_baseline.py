@@ -1,6 +1,6 @@
 """Pipeline do baseline DummyClassifier para churn.
 
-Fase 2: treino, metricas e registro no MLflow.
+Fase 2: treino, métricas e registro no MLflow.
 
 Este script atua como orquestrador, importando funções de outros
 módulos conforme a arquitetura modular do projeto.
@@ -42,14 +42,14 @@ def main() -> int:
     """Ponto de entrada do script.
 
     Orquestra o fluxo completo:
-    1. Carrega configuracao e ambiente
+    1. Carrega configuração e ambiente
     2. Carrega e valida dados
     3. Faz split treino/teste
-    4. Treina multiplas estrategias DummyClassifier
-    5. Registra metricas no MLflow
+    4. Treina múltiplas estratégias DummyClassifier
+    5. Registra métricas no MLflow
     6. Salva resultados comparativos
     """
-    # Carrega variaveis de ambiente
+    # Carrega variáveis de ambiente
     load_dotenv_silent()
 
     # Inicializa logging estruturado
@@ -83,7 +83,7 @@ def main() -> int:
     # Obtem versao do dataset
     dataset_version = safe_get_dataset_version()
 
-    # Treina todas as estrategias e obtem resultados comparativos
+    # Treina todas as estratégias e obtem resultados comparativos
     results_df = run_all_strategies(
         X_train, X_test, y_train, y_test, config, dataset_version
     )
@@ -94,7 +94,7 @@ def main() -> int:
     results_df.to_csv(output_path, index=False)
 
     # Exibe resumo via logging estruturado
-    logger.info("Treino/aval/log no MLflow concluidos com sucesso.")
+    logger.info("Treino/aval/log no MLflow concluídos com sucesso.")
     logger.info(
         "Comparativo salvo em: %s",
         output_path,

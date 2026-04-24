@@ -27,7 +27,7 @@ async def lifespan(
 
 app = FastAPI(
     title="Churn Prediction API",
-    description="API para predicao de churn de clientes da Telco",
+    description="API para predição de churn de clientes da Telco",
     version="0.1.0",
     lifespan=lifespan,
 )
@@ -54,11 +54,11 @@ async def health_check() -> dict[str, str]:
 async def predict(
     request: PredictRequest,
 ) -> PredictResponse:
-    """Recebe os dados do cliente e retorna a predicao de churn."""
+    """Recebe os dados do cliente e retorna a predição de churn."""
     start = time.perf_counter()
 
     # TODO: Integrar com o modelo real no futuro
-    # Por enquanto, retornamos um mock dinamico baseado na entrada
+    # Por enquanto, retornamos um mock dinâmico baseado na entrada
     tenure_threshold = 12
     churn_threshold = 0.5
 

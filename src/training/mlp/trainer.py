@@ -159,7 +159,7 @@ class MLPTrainer:
             Histórico de treino com métricas por época:
             {'train_loss': [...], 'val_loss': [...], 'val_f1': [...], ...}
         """
-        # Cria split de validacao se nao fornecido
+        # Cria split de validação se não fornecido
         if X_val is None or y_val is None:
             val_size = int(len(X_train) * self.config.val_split)
             indices = np.random.permutation(len(X_train))

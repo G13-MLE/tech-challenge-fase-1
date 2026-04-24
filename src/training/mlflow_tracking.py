@@ -76,7 +76,7 @@ def build_mlflow_inputs(
 
     Returns:
         Tupla de (train_input, test_input) como objetos Dataset MLflow.
-        Retorna object pois o tipo específico não está disponível em
+        Retorna object pois o tipo específico não esta disponível em
         type stubs.
     """
     dataset_version_short = dataset_version[:8]

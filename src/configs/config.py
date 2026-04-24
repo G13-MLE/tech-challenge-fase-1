@@ -89,7 +89,7 @@ class TrainingConfig:
             mais memória. Batches menores adicionam ruído de
             regularização, mas podem ser instáveis.
         max_epochs: Máximo de épocas de treino. Atua como limite
-            de segurança quando early stopping está desabilitado.
+            de segurança quando early stopping esta desabilitado.
         val_split: Fração dos dados de treino para validação
             (0.0-1.0). Usada para early stopping e seleção do
             modelo quando X_val não é fornecido.

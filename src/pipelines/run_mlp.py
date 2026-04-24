@@ -1,12 +1,12 @@
 """Pipeline de treino para modelo MLP (Multi-Layer Perceptron).
 
-Este script orquestra o treinamento do modelo MLP para predicao de churn:
+Este script orquestra o treinamento do modelo MLP para predição de churn:
 1. Carregamento dos dados brutos do dataset Telco Customer Churn
 2. Preprocessamento (codificacao, escalonamento SEM data leakage)
 3. Divisao treino/teste estratificada
 4. Configuracao e treino do modelo MLP
 5. Avaliacao no conjunto de teste
-6. Logging de metricas e modelo no MLflow
+6. Logging de métricas e modelo no MLflow
 
 Como usar:
     $ uv run python -m src.pipelines.run_mlp
@@ -76,7 +76,7 @@ logger = logging.getLogger(__name__)
 
 
 def main() -> None:  # noqa: PLR0914, PLR0915
-    """Funcao principal que executa o pipeline de treino completo.
+    """função principal que executa o pipeline de treino completo.
 
     Orquestra todo o fluxo de ML:
     1. Parse de argumentos da linha de comando
@@ -96,7 +96,7 @@ def main() -> None:  # noqa: PLR0914, PLR0915
     """
     # Configura argumentos de linha de comando
     parser = argparse.ArgumentParser(
-        description="Treina modelo MLP para predicao de churn"
+        description="Treina modelo MLP para predição de churn"
     )
     parser.add_argument(
         "--input",
@@ -110,7 +110,7 @@ def main() -> None:  # noqa: PLR0914, PLR0915
     )
     args = parser.parse_args()
 
-    # Carrega variaveis de ambiente (.env)
+    # Carrega variáveis de ambiente (.env)
     load_dotenv_silent()
 
     # Inicializa logging estruturado
@@ -230,7 +230,7 @@ def main() -> None:  # noqa: PLR0914, PLR0915
         mlflow.log_input(train_input, context="training")  # type: ignore[arg-type]
         mlflow.log_input(test_input, context="testing")  # type: ignore[arg-type]
 
-        # Registra parametros da arquitetura
+        # Registra parâmetros da arquitetura
         mlflow.log_params(
             {
                 "input_dim": mlp_config.input_dim,
@@ -253,24 +253,24 @@ def main() -> None:  # noqa: PLR0914, PLR0915
         model = MLPForTraining(mlp_config)
         trainer = MLPTrainer(model, training_config)
 
-        # Treina com validacao e early stopping
+        # Treina com validação e early stopping
         logger.info("Iniciando treinamento")
         model_save_path = Path("models/churn_mlp_best.pt")
         _history = trainer.fit(
             X_train_scaled, y_train_arr, model_save_path=str(model_save_path)
         )
 
-        # Registra metricas de treino no MLflow
+        # Registra métricas de treino no MLflow
         trainer.log_to_mlflow()
 
-        logger.info("Treinamento concluido")
+        logger.info("Treinamento concluído")
 
         # === 7. AVALIACAO NO CONJUNTO DE TESTE ===
         model.model.eval()
         with torch.no_grad():
-            X_test_tensor = torch.tensor(
-                X_test_scaled, dtype=torch.float32
-            ).to(trainer.device)
+            X_test_tensor = torch.tensor(X_test_scaled, dtype=torch.float32).to(
+                trainer.device
+            )
             outputs = model(X_test_tensor)
             probs = outputs["probs"].cpu().numpy()
             preds = (probs > THRESHOLD).astype(int)
@@ -293,9 +293,7 @@ def main() -> None:  # noqa: PLR0914, PLR0915
         cm = compute_confusion_matrix(y_true=y_test_arr, y_pred=preds)
         cost_fn = 500.0
         cost_fp = 50.0
-        total_cost = (
-            cm["false_negatives"] * cost_fn + cm["false_positives"] * cost_fp
-        )
+        total_cost = cm["false_negatives"] * cost_fn + cm["false_positives"] * cost_fp
         logger.info(
             f"Custo estimado: R$ {total_cost:.2f} "
             f"(FN: {cm['false_negatives']} x {cost_fn}, "
@@ -352,14 +350,18 @@ def main() -> None:  # noqa: PLR0914, PLR0915
         # --- Salva CSV com bandas de risco ---
         risk_df = pd.DataFrame(
             {
-                "customer_id": df.iloc[y_test.index]["customerID"].values
-                if "customerID" in df.columns
-                else range(len(probs)),
+                "customer_id": (
+                    df.iloc[y_test.index]["customerID"].values
+                    if "customerID" in df.columns
+                    else range(len(probs))
+                ),
                 "proba_churn": probs,
                 "risk_band": [
-                    "Low" if p < RISK_BAND_LOW
-                    else "Medium" if p < RISK_BAND_HIGH
-                    else "High"
+                    (
+                        "Low"
+                        if p < RISK_BAND_LOW
+                        else "Medium" if p < RISK_BAND_HIGH else "High"
+                    )
                     for p in probs
                 ],
                 "true_churn": y_test_arr.astype(int),
@@ -398,7 +400,7 @@ def main() -> None:  # noqa: PLR0914, PLR0915
         # Salva modelo no MLflow registry
         mlflow.pytorch.log_model(model, "model")
 
-        # Salva scaler para inferencia
+        # Salva scaler para inferência
         scaler_path = Path("models/scaler.pkl")
         save_scaler(scaler, str(scaler_path))
         mlflow.log_artifact(str(scaler_path), artifact_path="preprocessing")

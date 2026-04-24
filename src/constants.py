@@ -9,7 +9,7 @@ from __future__ import annotations
 # Seed para reprodutibilidade
 RANDOM_SEED: int = 42
 
-# Coluna alvo para predicao de churn
+# Coluna alvo para predição de churn
 TARGET_COLUMN: str = "Churn"
 
 # Label positivo para churn (Yes = cliente cancelou)
@@ -23,15 +23,16 @@ RISK_BAND_LOW: float = 0.30
 RISK_BAND_HIGH: float = 0.60
 
 # Proporcao padrao para split treino/teste
+# Proporcao padrão para split treino/teste
 DEFAULT_TEST_SIZE: float = 0.2
 
-# Caminho padrao para o dataset
+# Caminho padrão para o dataset
 DEFAULT_DATASET_PATH: str = "data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv"
 
-# Caminho padrao para salvar modelos
+# Caminho padrão para salvar modelos
 DEFAULT_MODEL_DIR: str = "models"
 
-# Nome padrao para experimento MLflow
+# Nome padrão para experimento MLflow
 DEFAULT_MLP_EXPERIMENT_NAME: str = "tech-challenge-mlp"
 DEFAULT_DUMMY_EXPERIMENT_NAME: str = "tech-challenge-dummy-baseline"
 

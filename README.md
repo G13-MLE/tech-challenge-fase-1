@@ -195,7 +195,7 @@ make docker-down  # Parar todos os containers MLflow
 Para treinar o modelo MLP (Multi-Layer Perceptron) com PyTorch:
 
 **Pré-requisitos:**
-- Arquivo `.env` configurado (veja seção "Configuração de Variáveis de Ambiente")
+- Arquivo `.env` configurado (vejá seção "Configuração de Variáveis de Ambiente")
 - MLflow rodando localmente (`make docker-up`)
 - Dataset Telco no caminho `data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv`
 

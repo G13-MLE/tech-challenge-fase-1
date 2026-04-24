@@ -1,7 +1,7 @@
 [project]
 name = "TechChallenge1ChurnTelco"
 version = "0.1.0"
-description = "Solução Completa para o Tech Challenge 1 da pós-graduação MLE da FIAP."
+description = "Solução Completá para o Tech Challenge 1 da pós-graduação MLE da FIAP."
 readme = "README.md"
 requires-python = ">=3.12,<3.14"
 dependencies = [
@@ -41,23 +41,23 @@ dev = [
 ]
 
 [tool.ruff] # Configurando tools do pyprojetct. Tools sao usadas para configurar linters, formatadores e outras ferramentas de desenvolvimento.
-# Numero maximo de linhas 79, seguindo padrao da documentacao ruff.
+# Numero maximo de linhas 79, seguindo padrão da documentacao ruff.
 line-length = 79
 
 [tool.ruff.lint]
 preview = true
-extend-select = ['I', 'F', 'E', 'W', 'PL', 'PT'] # Recomendacoes do dunossauro no curso de FASTApi, https://fastapidozero.dunossauro.com/estavel/01/?h=ruff#ruff
+extend-select = ['I', 'F', 'E', 'W', 'PL', 'PT'] # Recomendacoes do dunossauro no curso de FASTApi, https://fastapidozero.dunossauro.com/estável/01/?h=ruff#ruff
 
 [tool.mypy]
 python_version = 3.13
-disallow_untyped_defs = true # Toda nova funcao deve ter tipo definido, seguindo boas praticas de tipagem.
+disallow_untyped_defs = true # Toda nova função deve ter tipo definido, seguindo boas praticas de tipagem.
 exclude =[
-  "notebooks/" # Excluindo notebooks do mypy, pois eles geralmente sao usados para experimentacao e podem conter codigo mais flexivel.
+  "notebooks/" # Excluindo notebooks do mypy, pois eles geralmente sao usados para experimentação e podem conter código mais flexivel.
 ]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
-testpaths = ["tests"] # Configurando o pytest para procurar testes na pasta tests.
+testpaths = ["tests"] # Configurando o pytest para procurar testes na pastá tests.
 
 markers = [
     "slow: Marca para testes lentos, que podem ser executados separadamente para economizar tempo durante o desenvolvimento.",

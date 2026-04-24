@@ -51,7 +51,7 @@ uv run pytest tests/pipelines/test_run_dummy_baseline.py tests/data/test_prepare
 
 ## Observações
 
-- `random_seed=42` está aplicado no split e no `DummyClassifier`.
+- `random_seed=42` esta aplicado no split e no `DummyClassifier`.
 - O pipeline em `src/pipelines/` atua como orquestrador, reutilizando
   funções modulares em `src/data/` e `src/training/`.
 - Tags de contexto no MLflow incluem:
