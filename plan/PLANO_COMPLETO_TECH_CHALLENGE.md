@@ -341,7 +341,7 @@ SPRINT [X]: [NOME]
 
 **Checklist:**
 - [ ] `make test` passa todos os testes (5+)
-- [ ] `make lint` não reportá erros críticos
+- [ ] `make lint` não reporta erros críticos
 - [ ] API responde em < 200ms (local)
 - [ ] Logs estruturados funcionando
 - [ ] Pipeline reproduz resultado da sprint 2
@@ -458,7 +458,7 @@ SPRINT [X]: [NOME]
 - Estrutura de pastas padronizada
 
 **EDA:**
-- Notebook executavel
+- Notebook executável
 - Insights claros sobre os dados
 - Decisões de pré-processamento documentadas
 
@@ -561,7 +561,7 @@ A: Comunique imediatamente no Discord. Os tech leads podem redistribuir ou ajust
 **Q: Posso entregar antes do prazo?**
 A: Sim! Quanto antes melhor, assim sobra tempo para revisão e ajustes.
 
-**Q: Como saber se minha entrega esta boa?**
+**Q: Como saber se minha entrega está boa?**
 A: Use os checklists de cada sprint. Se passou em todos os itens, esta ótimo! e se tem aval do lead da tarefa.
 
 ### Sobre Tecnologias
