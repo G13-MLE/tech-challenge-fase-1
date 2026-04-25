@@ -92,23 +92,24 @@ def run_all_strategies(  # noqa: PLR0913, PLR0917
     y_test: pd.Series,
     config: DummyTrainingConfig,
     dataset_version: str = "unknown",
+    train_input: object | None = None,
+    test_input: object | None = None,
 ) -> pd.DataFrame:
-    """Executa treino/eval/log para cada estratégia do DummyClassifier.
-
-    Treina múltiplas estratégias do DummyClassifier, avalia cada uma
-    e registra métricas no MLflow. Retorna dataframe comparativo.
+    """Executa treino/eval/log para cada estrategia do DummyClassifier.
 
     Args:
-        X_train: Features de treino
-        X_test: Features de teste
-        y_train: Target de treino
-        y_test: Target de teste
-        config: Configuração do treinamento
-        dataset_version: Versão do dataset para tracking
+        X_train: Features de treino.
+        X_test: Features de teste.
+        y_train: Target de treino.
+        y_test: Target de teste.
+        config: Configuracao do treinamento.
+        dataset_version: Versao do dataset para tracking.
+        train_input: Input MLflow para dados de treino (opcional).
+        test_input: Input MLflow para dados de teste (opcional).
 
     Returns:
-        DataFrame comparativo com métricas por estratégia,
-            ordenado por F1 score
+        DataFrame comparativo com metricas por estratégia,
+        ordenado por F1 score.
     """
     results: list[dict[str, Any]] = []
 
@@ -118,9 +119,13 @@ def run_all_strategies(  # noqa: PLR0913, PLR0917
         )
         metrics = result["metrics"]
 
-        # Log no MLflow para cada estratégia
         run_name = f"dummy_{strategy}"
         with mlflow.start_run(run_name=run_name):
+            if train_input is not None:
+                mlflow.log_input(train_input, context="training")
+            if test_input is not None:
+                mlflow.log_input(test_input, context="testing")
+
             mlflow.log_param("model_type", "DummyClassifier")
             mlflow.log_param("strategy", strategy)
             mlflow.log_param("random_seed", config.random_seed)

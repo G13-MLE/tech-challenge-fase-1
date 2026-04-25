@@ -88,10 +88,5 @@ module = [
     "joblib",
     "joblib.*",
     "pythonjsonlogger.*",
-    "dotenv",
-    "rich.*",
-    "sklearn.*",
-    "numpy.*",
-    "pandas.*"
 ]
 ignore_missing_imports = true

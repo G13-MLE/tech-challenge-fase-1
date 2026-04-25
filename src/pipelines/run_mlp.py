@@ -31,7 +31,13 @@ import pandas as pd
 import torch
 
 from src.config.logging import setup_logging
+<<<<<<< HEAD
 from src.configs.config import MLPConfig, TrainingConfig
+=======
+from src.config.models import MLPConfig, TrainingConfig
+
+# Limiar para converter probabilidades em predicoes binarias
+>>>>>>> fbc8326 (refactor: simplifica estrutura de config e docstrings (#31))
 from src.constants import (
     DEFAULT_DATASET_PATH,
     DEFAULT_MLP_EXPERIMENT_NAME,
@@ -54,6 +60,7 @@ from src.pipelines.common import (
     get_experiment_name,
     load_dotenv_silent,
     safe_get_dataset_version,
+    set_global_seed,
 )
 from src.training import MLPForTraining, MLPTrainer
 from src.training.metrics import (
@@ -117,15 +124,8 @@ def main() -> None:  # noqa: PLR0914, PLR0915
     setup_logging()
 
     # === SEED GLOBAL PARA REPRODUTIBILIDADE ===
-    # Define seed no inicio do pipeline para garantir reproducibilidade
-    # em todas as operacoes randomicas (split, inicializacao de pesos, etc)
     logger.info(f"Definindo seed global: {RANDOM_SEED}")
-    torch.manual_seed(RANDOM_SEED)
-    np.random.seed(RANDOM_SEED)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(RANDOM_SEED)
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
+    set_global_seed(RANDOM_SEED)
 
     # Configura MLflow via modulo generico
     experiment_name = get_experiment_name(
@@ -148,8 +148,7 @@ def main() -> None:  # noqa: PLR0914, PLR0915
 
     # === 2. PREPROCESSAMENTO (SEM SCALING AINDA) ===
     logger.info("Preprocessando dados (one-hot encoding)")
-    # Preprocessamento: one-hot encoding, mas SEM scaling (evita data leakage)
-    X, y, feature_names, _df_processed = mlp_preprocess_data(df)
+    X, y, feature_names = mlp_preprocess_data(df)
 
     # === 3. DIVISAO TREINO/TESTE ===
     logger.info(f"Dividindo dados: treino/teste com seed={RANDOM_SEED}")

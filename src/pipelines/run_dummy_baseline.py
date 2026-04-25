@@ -30,7 +30,12 @@ from src.pipelines.common import (
     safe_get_dataset_version,
 )
 from src.training import DummyTrainingConfig, run_all_strategies
-from src.training.mlflow_tracking import MLflowConfig, setup_mlflow
+from src.training.mlflow_tracking import (
+    MLflowConfig,
+    TrainTestData,
+    build_mlflow_inputs,
+    setup_mlflow,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -80,12 +85,29 @@ def main() -> int:
         config.random_seed,
     )
 
-    # Obtém versão do dataset
+    # Obtem versao do dataset
     dataset_version = safe_get_dataset_version()
 
-    # Treina todas as estratégias e Obtém resultados comparativos
+    # Prepara lineage de dados para MLflow
+    train_test_data = TrainTestData(
+        X_train=X_train, X_test=X_test, y_train=y_train, y_test=y_test
+    )
+    train_input, test_input = build_mlflow_inputs(
+        train_test_data,
+        config.target_column,
+        dataset_version,
+    )
+
+    # Treina todas as estrategias e obtem resultados comparativos
     results_df = run_all_strategies(
-        X_train, X_test, y_train, y_test, config, dataset_version
+        X_train,
+        X_test,
+        y_train,
+        y_test,
+        config,
+        dataset_version,
+        train_input=train_input,
+        test_input=test_input,
     )
 
     # Salva CSV comparativo localmente (sem run adicional no MLflow)

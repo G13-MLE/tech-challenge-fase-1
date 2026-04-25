@@ -183,22 +183,8 @@ def mlp_preprocess_data(
 ) -> tuple[np.ndarray, np.ndarray, list[str], pd.DataFrame]:
     """Preprocessa DataFrame ja limpo do Telco para treino MLP.
 
-    Esta função realiza transformacoes necessarias para preparar dados
-    tabulares para uma rede neural. NAO aplica StandardScaler - isso
-    deve ser feito APOS o split treino/teste para evitar data leakage.
-
-    Passos de preprocessamento:
-        1. Remove customerID (não e uma feature)
-        2. Codifica Churn: "Yes"->1, "No"->0 (target binario)
-        3. Converte TotalCharges para numerico, preenchendo NaNs com 0
-        4. One-hot encoding para variáveis categóricas
-        5. Retorna features não escaladas (scaling feito separadamente)
-
-    Por que cada passo:
-        - One-hot: Redes neurais requerem entrada numerica
-        - Sem StandardScaler aqui: Evita data leakage - scaler deve ser
-          fitado apenas no conjunto de treino
-        - drop_first=True: Evita multicolinearidade
+    NAO aplica StandardScaler - deve ser feito APOS o split
+    treino/teste para evitar data leakage.
 
     Args:
         df: DataFrame LIMPO (saida de clean_telco_data())
@@ -231,4 +217,4 @@ def mlp_preprocess_data(
     X = np.asarray(X_df.values, dtype=np.float64)
     y = np.asarray(y_series.values, dtype=np.float64)
 
-    return X, y, feature_names, df_encoded
+    return X, y, feature_names

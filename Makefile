@@ -32,7 +32,6 @@ help:
 	@echo "  make train      - Treinar todos os modelos (requer .env + MLflow)"
 	@echo "  make train-dummy - Treinar baseline DummyClassifier"
 	@echo "  make train-mlp  - Treinar modelo MLP (requer .env + MLflow)"
-	@echo "  make train-logistic - Treinar modelo Logistic Regression (futuro)"
 	@echo ""
 
 # Setup inicial
@@ -116,13 +115,6 @@ train-mlp:
 	uv run python -m src.pipelines.run_mlp
 	@echo "Treinamento MLP concluído!"
 
-# Analisar experimentos do MLflow
-analyze:
-	$(ENV_ERROR)
-	@echo "Analisando experimentos no MLflow..."
-	uv run python -m src.tools.analyze_experiments --output reports/mlflow_analysis.csv
-	@echo "Analise concluida! CSV salvo em reports/mlflow_analysis.csv"
-
 # Futuro: Treinar modelo Logistic Regression
 train-logistic:
 	$(ENV_ERROR)
@@ -132,21 +124,28 @@ train-logistic:
 	@echo "Treinamento Logistic Regression concluído!"
 	@echo "✅ Containers parados!"
 
+# Analisar experimentos do MLflow
+analyze:
+	$(ENV_ERROR)
+	@echo "Analisando experimentos no MLflow..."
+	uv run python -m src.tools.analyze_experiments --output reports/mlflow_analysis.csv
+	@echo "Analise concluida! CSV salvo em reports/mlflow_analysis.csv"
+
 # Iniciar API no Docker
 api-up:
-	@echo "🚀 Iniciando API em background com hot-reload..."
+	@echo "Starting API in background with hot-reload..."
 	docker compose -f docker/docker-compose.api.yml up --build -d
-	@echo "✅ API iniciada! Acesse o Swagger em http://localhost:$${API_PORT:-8000}/docs"
+	@echo "[OK] API started! Access Swagger at http://localhost:$${API_PORT:-8000}/docs"
 
 # Parar API
 api-down:
-	@echo "🛑 Parando container da API..."
+	@echo "[STOP] Stopping API container..."
 	docker compose -f docker/docker-compose.api.yml down
-	@echo "✅ API parada!"
+	@echo "[OK] API stopped!"
 
 # Testar API
 api-test:
-	@echo "🧪 Testando endpoint de predição (/predict)..."
+	@echo "Testing prediction endpoint (/predict)..."
 	curl -X POST "http://localhost:$${API_PORT:-8000}/predict" \
 	     -H "Content-Type: application/json" \
 	     -d '{"customerID": "1234-ABCD", "tenure": 5, "MonthlyCharges": 50.0, "Contract": "Month-to-month"}'

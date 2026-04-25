@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 import torch
 
-from src.configs.config import MLPConfig
+from src.config.models import MLPConfig
 from src.training import MLP, MLPForTraining
 
 
