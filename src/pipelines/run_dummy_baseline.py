@@ -12,6 +12,7 @@ import logging
 import sys
 from pathlib import Path
 
+from src.config.logging import setup_logging
 from src.constants import (
     DEFAULT_DUMMY_EXPERIMENT_NAME,
     POSITIVE_LABEL,
@@ -23,7 +24,6 @@ from src.data.validation import (
     validate_binary_target,
     validate_required_columns,
 )
-from src.logging_config import setup_logging
 from src.pipelines.common import (
     get_experiment_name,
     load_dotenv_silent,

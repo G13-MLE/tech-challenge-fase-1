@@ -1,10 +1,10 @@
-"""Testes para o módulo src.logging_config."""
+"""Testes para o módulo src.config.logging."""
 
 from __future__ import annotations
 
 import logging
 
-from src.logging_config import (
+from src.config.logging import (
     LoggingConfig,
     RequestContextFilter,
     request_id_ctx,

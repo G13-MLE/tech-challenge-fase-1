@@ -9,7 +9,7 @@ from fastapi import status
 from fastapi.testclient import TestClient
 
 from src.api.main import app
-from src.logging_config import LoggingConfig, setup_logging
+from src.config.logging import LoggingConfig, setup_logging
 
 _HIGH_CHURN_PROB = 0.85
 

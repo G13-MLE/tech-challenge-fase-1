@@ -11,7 +11,7 @@ from fastapi import FastAPI
 
 from src.api.middleware import LatencyMiddleware, RequestIDMiddleware
 from src.api.schemas import PredictRequest, PredictResponse
-from src.logging_config import LoggingConfig, request_id_ctx, setup_logging
+from src.config.logging import LoggingConfig, request_id_ctx, setup_logging
 
 logger = logging.getLogger(__name__)
 
