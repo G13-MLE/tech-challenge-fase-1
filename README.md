@@ -32,6 +32,13 @@ tech-challenge-fase-1/
 └── docs/           # Documentação complementar
 ```
 
+### Documentação de arquitetura e operação
+
+- [Arquitetura de Deploy](docs/ARQUITETURA_DE_DEPLOY.md):
+  componentes, fluxo de inferência, opções de cloud e CI/CD.
+- [Plano de Monitoramento](docs/MONITORAMENTO.md):
+  métricas, thresholds, alertas e ferramentas de observabilidade.
+
 ## Dataset base — Telco Customer Churn (IBM)
 
 - Arquivo usado no projeto:
