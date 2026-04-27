@@ -22,7 +22,7 @@ import os
 import sys
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import mlflow
 import pandas as pd
@@ -66,6 +66,8 @@ _PRIORITY_METRICS = [
     "test_pr_auc",
 ]
 
+_MAX_DISPLAY_METRICS = 10
+
 console = Console()
 
 
@@ -82,15 +84,15 @@ class RunSummary:
     params: dict[str, str]
 
 
-def format_timestamp(ts: object) -> str:
+def format_timestamp(ts: object | None) -> str:
     """Formata um timestamp unix para string legivel."""
     if ts is None:
         return "N/A"
-    # Pode ser pd.Timestamp (pandas) ou int/float (ms)
+    ts_sec: float
     if hasattr(ts, "timestamp"):
-        ts_sec = ts.timestamp()
+        ts_sec = ts.timestamp()  # type: ignore[union-attr]
     else:
-        ts_sec = float(ts) / 1000
+        ts_sec = float(cast(float, ts)) / 1000
     return datetime.fromtimestamp(ts_sec, tz=UTC).strftime("%Y-%m-%d %H:%M:%S")
 
 
@@ -116,39 +118,52 @@ def _fetch_runs_for_experiment(exp_name: str) -> list[RunSummary]:
     if exp_id is None:
         return []
 
-    runs_df = mlflow.search_runs(
-        experiment_ids=[exp_id],
-        filter_string="status = 'FINISHED'",
+    runs_df = cast(
+        pd.DataFrame,
+        mlflow.search_runs(
+            experiment_ids=[exp_id],
+            filter_string="status = 'FINISHED'",
+        ),
     )
 
     if runs_df.empty:
         return []
 
     summaries: list[RunSummary] = []
-    for _, row in runs_df.iterrows():
-        metrics = {
-            k: v
-            for k, v in row.items()
-            if k.startswith("metrics.") and pd.notna(v)
-        }
-        params = {
-            k: v
-            for k, v in row.items()
-            if k.startswith("params.") and pd.notna(v)
-        }
+    for _, row_raw in runs_df.iterrows():
+        raw_dict = cast("pd.Series", row_raw).to_dict()
+        row = cast(dict[str, object], raw_dict)
+
+        def _filter_prefix(
+            row_dict: dict[str, object], prefix: str
+        ) -> dict[str, object]:
+            return {
+                k: v
+                for k, v in row_dict.items()
+                if isinstance(k, str)
+                and k.startswith(prefix)
+                and v is not None
+            }
+
+        metrics = _filter_prefix(row, "metrics.")
+        params = _filter_prefix(row, "params.")
 
         summaries.append(
             RunSummary(
-                run_id=row.get("run_id", ""),
-                run_name=row.get("tags.mlflow.runName", "N/A"),
+                run_id=str(row.get("run_id", "")),
+                run_name=str(row.get("tags.mlflow.runName", "N/A")),
                 experiment_name=exp_name,
-                status=row.get("status", "N/A"),
-                start_time=format_timestamp(row.get("start_time")),
+                status=str(row.get("status", "N/A")),
+                start_time=format_timestamp(
+                    cast(float | int | None, row.get("start_time"))
+                ),
                 metrics={
-                    k.replace("metrics.", ""): v for k, v in metrics.items()
+                    str(k).replace("metrics.", ""): cast(float, v)
+                    for k, v in metrics.items()
                 },
                 params={
-                    k.replace("params.", ""): v for k, v in params.items()
+                    str(k).replace("params.", ""): str(v)
+                    for k, v in params.items()
                 },
             )
         )
@@ -167,14 +182,14 @@ def _print_experiment_summary(runs: list[RunSummary]) -> None:
     for run in runs:
         all_metrics.update(run.metrics.keys())
 
-    # Ordena metricas prioritarias primeiro
-    sorted_metrics = sorted(
-        all_metrics,
-        key=lambda m: (
-            _PRIORITY_METRICS.index(m) if m in _PRIORITY_METRICS else 999,
-            m,
-        ),
-    )
+    # Exibe apenas metricas prioritarias (evita overflow no terminal)
+    sorted_metrics = [m for m in _PRIORITY_METRICS if m in all_metrics]
+    # Fallback: se nenhuma prioritaria existir, mostra metricas alfabeticas
+    if not sorted_metrics:
+        sorted_metrics = sorted(all_metrics)[:_MAX_DISPLAY_METRICS]
+    # Segundo fallback: se ainda tiver muitas, trunca
+    elif len(sorted_metrics) > _MAX_DISPLAY_METRICS:
+        sorted_metrics = sorted_metrics[:_MAX_DISPLAY_METRICS]
 
     table = Table(title=f"Experimento: {runs[0].experiment_name}")
     table.add_column("Run ID", style="cyan", no_wrap=True)
@@ -248,7 +263,7 @@ def _print_run_details(details: dict[str, object]) -> None:
     console.print(f"Inicio: {details['start_time']}")
     console.print(f"Fim: {details['end_time']}")
 
-    metrics = details["metrics"]
+    metrics = cast(dict[str, float], details["metrics"])
     if metrics:
         table = Table(title="Metricas")
         table.add_column("Metrica", style="cyan")
@@ -257,12 +272,12 @@ def _print_run_details(details: dict[str, object]) -> None:
             table.add_row(k, f"{v:.6f}")
         console.print(table)
 
-    params = details["params"]
+    params = cast(dict[str, str], details["params"])
     if params:
         table = Table(title="Parametros")
         table.add_column("Parametro", style="magenta")
         table.add_column("Valor")
-        for k, v in sorted(params.items()):
+        for k, v in sorted(params.items()):  # type: ignore[assignment]
             table.add_row(k, str(v))
         console.print(table)
 
@@ -278,9 +293,9 @@ def _build_dataframe(runs: list[RunSummary]) -> pd.DataFrame:
             "status": run.status,
             "start_time": run.start_time,
         }
-        for k, v in run.params.items():
+        for k, v in run.params.items():  # type: ignore[assignment]
             row[f"param.{k}"] = v
-        for k, v in run.metrics.items():
+        for k, v in run.metrics.items():  # type: ignore[assignment]
             row[f"metric.{k}"] = v
         rows.append(row)
 
