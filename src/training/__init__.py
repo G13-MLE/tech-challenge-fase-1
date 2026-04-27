@@ -5,13 +5,19 @@ from src.training.dummy_trainer import (
     run_all_strategies,
     train_dummy_strategy,
 )
+from src.training.logistic_trainer import (
+    LogisticTrainingConfig,
+    train_logistic_classifier,
+)
 from src.training.mlp import MLP, MLPForTraining, MLPTrainer
 
 __all__ = [
     "MLP",
     "DummyTrainingConfig",
+    "LogisticTrainingConfig",
     "MLPForTraining",
     "MLPTrainer",
     "run_all_strategies",
     "train_dummy_strategy",
+    "train_logistic_classifier",
 ]
