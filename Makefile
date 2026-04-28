@@ -19,8 +19,8 @@ help:
 	@echo "Docker:"
 	@echo "  make docker-up  - Iniciar MLflow em background (requer .env)"
 	@echo "  make docker-down - Parar todos os containers MLflow"
-	@echo "  make api-up     - Iniciar API FastAPI em background com hot-reload"
-	@echo "  make api-down   - Parar container da API"
+	@echo "  make api-up     - Iniciar API FastAPI + Prometheus em background"
+	@echo "  make api-down   - Parar containers da API e Prometheus"
 	@echo "  make api-test   - Testar endpoint de predição via cURL"
 	@echo ""
 	@echo "Desenvolvimento:"
@@ -131,17 +131,20 @@ analyze:
 	uv run python -m src.tools.analyze_experiments --output reports/mlflow_analysis.csv
 	@echo "Analise concluida! CSV salvo em reports/mlflow_analysis.csv"
 
-# Iniciar API no Docker
+# Iniciar API + Prometheus + Grafana no Docker
 api-up:
-	@echo "Starting API in background with hot-reload..."
+	@echo "Starting API + Prometheus + Grafana in background..."
 	docker compose -f docker/docker-compose.api.yml up --build -d
-	@echo "[OK] API started! Access Swagger at http://localhost:$${API_PORT:-8000}/docs"
+	@echo "[OK] API:       http://localhost:$${API_PORT:-8000}/docs"
+	@echo "[OK] Prometheus: http://localhost:9090"
+	@echo "[OK] Targets:    http://localhost:9090/targets"
+	@echo "[OK] Grafana:    http://localhost:3000  (admin/admin)"
 
-# Parar API
+# Parar API + Prometheus + Grafana
 api-down:
-	@echo "[STOP] Stopping API container..."
+	@echo "[STOP] Stopping API + Prometheus + Grafana..."
 	docker compose -f docker/docker-compose.api.yml down
-	@echo "[OK] API stopped!"
+	@echo "[OK] Stopped!"
 
 # Testar API
 api-test:

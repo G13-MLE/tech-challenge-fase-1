@@ -17,6 +17,11 @@ from starlette.middleware.base import (
     RequestResponseEndpoint,
 )
 
+from src.api.metrics import (
+    HTTP_REQUEST_DURATION_SECONDS,
+    HTTP_REQUESTS_TOTAL,
+)
+
 if TYPE_CHECKING:
     from starlette.requests import Request
     from starlette.responses import Response
@@ -57,14 +62,30 @@ class LatencyMiddleware(BaseHTTPMiddleware):
     ) -> Response:
         start = time.perf_counter()
         response = await call_next(request)
-        elapsed_ms = (time.perf_counter() - start) * 1000
+        elapsed_s = time.perf_counter() - start
+        elapsed_ms = elapsed_s * 1000
+
+        path = request.url.path
+        method = request.method
+        status_code = str(response.status_code)
+
+        HTTP_REQUESTS_TOTAL.labels(
+            method=method,
+            status_code=status_code,
+            path=path,
+        ).inc()
+
+        HTTP_REQUEST_DURATION_SECONDS.labels(
+            method=method,
+            path=path,
+        ).observe(elapsed_s)
 
         slo_breached = elapsed_ms > self.slo_ms
 
         log_data = {
-            "method": request.method,
-            "path": request.url.path,
-            "status_code": response.status_code,
+            "method": method,
+            "path": path,
+            "status_code": status_code,
             "latency_ms": round(elapsed_ms, 2),
             "slo_ms": self.slo_ms,
             "slo_breached": slo_breached,

@@ -7,9 +7,10 @@ import time
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 
 from src.api.logging import LoggingConfig, request_id_ctx, setup_logging
+from src.api.metrics import PREDICTION_PROBABILITY, metrics_exposition
 from src.api.middleware import LatencyMiddleware, RequestIDMiddleware
 from src.api.schemas import PredictRequest, PredictResponse
 
@@ -47,6 +48,19 @@ async def health_check() -> dict[str, str]:
     return {"status": "healthy"}
 
 
+@app.get("/metrics", tags=["Monitoramento"])
+async def metrics() -> Response:
+    """Expoem métricas no formato Prometheus.
+
+    Endpoint compatível com scrapers como Prometheus Server
+    ou Grafana Agent para coleta de telemetria.
+    """
+    return Response(
+        content=metrics_exposition(),
+        media_type="text/plain; version=0.0.4; charset=utf-8",
+    )
+
+
 @app.post(
     "/predict",
     response_model=PredictResponse,
@@ -67,6 +81,8 @@ async def predict(
     prediction = probability > churn_threshold
 
     elapsed_ms = (time.perf_counter() - start) * 1000
+
+    PREDICTION_PROBABILITY.observe(probability)
 
     logger.info(
         "Predição concluída: %s",
