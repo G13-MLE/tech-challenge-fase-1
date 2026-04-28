@@ -8,11 +8,13 @@ from src.training.dummy_trainer import (
 from src.training.logistic_trainer import (
     LogisticTrainingConfig,
     train_logistic_classifier,
+    cross_validate_logistic,
 )
 from src.training.mlp import MLP, MLPForTraining, MLPTrainer
 
 __all__ = [
     "MLP",
+    "cross_validate_logistic",
     "DummyTrainingConfig",
     "LogisticTrainingConfig",
     "MLPForTraining",
