@@ -9,9 +9,9 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from src.api.logging import LoggingConfig, request_id_ctx, setup_logging
 from src.api.middleware import LatencyMiddleware, RequestIDMiddleware
 from src.api.schemas import PredictRequest, PredictResponse
-from src.config.logging import LoggingConfig, request_id_ctx, setup_logging
 
 logger = logging.getLogger(__name__)
 

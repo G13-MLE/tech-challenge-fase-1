@@ -12,7 +12,7 @@ import logging
 import sys
 from pathlib import Path
 
-from src.config.logging import setup_logging
+from src.api.logging import setup_logging
 from src.constants import (
     DEFAULT_DUMMY_EXPERIMENT_NAME,
     POSITIVE_LABEL,

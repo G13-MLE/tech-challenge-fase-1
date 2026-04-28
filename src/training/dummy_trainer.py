@@ -92,8 +92,8 @@ def run_all_strategies(  # noqa: PLR0913, PLR0917
     y_test: pd.Series,
     config: DummyTrainingConfig,
     dataset_version: str = "unknown",
-    train_input: object | None = None,
-    test_input: object | None = None,
+    train_input: Any | None = None,
+    test_input: Any | None = None,
 ) -> pd.DataFrame:
     """Executa treino/eval/log para cada estrategia do DummyClassifier.
 

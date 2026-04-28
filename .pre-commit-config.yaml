@@ -24,7 +24,7 @@ repos:
       - id: mypy
         args: [--config-file=pyproject.toml]
         exclude: ^(tests|notebooks)/
-        additional_dependencies: [fastapi, pydantic]
+        additional_dependencies: [fastapi, pydantic, matplotlib, optuna]
 
   # Verificações gerais
   - repo: https://github.com/pre-commit/pre-commit-hooks

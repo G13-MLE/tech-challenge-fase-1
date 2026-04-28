@@ -15,7 +15,7 @@ from starlette.middleware.base import (
     RequestResponseEndpoint,
 )
 
-from src.config.logging import request_id_ctx
+from src.api.logging import request_id_ctx
 
 if TYPE_CHECKING:
     from starlette.requests import Request

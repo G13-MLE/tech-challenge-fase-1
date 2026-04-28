@@ -24,20 +24,17 @@ import argparse
 import logging
 import os
 from pathlib import Path
+from typing import cast
 
 import mlflow
 import numpy as np
 import pandas as pd
 import torch
 
-from src.config.logging import setup_logging
-<<<<<<< HEAD
-from src.configs.config import MLPConfig, TrainingConfig
-=======
+from src.api.logging import setup_logging
 from src.config.models import MLPConfig, TrainingConfig
 
 # Limiar para converter probabilidades em predicoes binarias
->>>>>>> fbc8326 (refactor: simplifica estrutura de config e docstrings (#31))
 from src.constants import (
     DEFAULT_DATASET_PATH,
     DEFAULT_MLP_EXPERIMENT_NAME,
@@ -148,7 +145,7 @@ def main() -> None:  # noqa: PLR0914, PLR0915
 
     # === 2. PREPROCESSAMENTO (SEM SCALING AINDA) ===
     logger.info("Preprocessando dados (one-hot encoding)")
-    X, y, feature_names = mlp_preprocess_data(df)
+    X, y, feature_names, _df_encoded = mlp_preprocess_data(df)
 
     # === 3. DIVISAO TREINO/TESTE ===
     logger.info(f"Dividindo dados: treino/teste com seed={RANDOM_SEED}")
@@ -267,9 +264,9 @@ def main() -> None:  # noqa: PLR0914, PLR0915
         # === 7. AVALIACAO NO CONJUNTO DE TESTE ===
         model.model.eval()
         with torch.no_grad():
-            X_test_tensor = torch.tensor(X_test_scaled, dtype=torch.float32).to(
-                trainer.device
-            )
+            X_test_tensor = torch.tensor(
+                X_test_scaled, dtype=torch.float32
+            ).to(trainer.device)
             outputs = model(X_test_tensor)
             probs = outputs["probs"].cpu().numpy()
             preds = (probs > THRESHOLD).astype(int)
@@ -292,7 +289,9 @@ def main() -> None:  # noqa: PLR0914, PLR0915
         cm = compute_confusion_matrix(y_true=y_test_arr, y_pred=preds)
         cost_fn = 500.0
         cost_fp = 50.0
-        total_cost = cm["false_negatives"] * cost_fn + cm["false_positives"] * cost_fp
+        total_cost = (
+            cm["false_negatives"] * cost_fn + cm["false_positives"] * cost_fp
+        )
         logger.info(
             f"Custo estimado: R$ {total_cost:.2f} "
             f"(FN: {cm['false_negatives']} x {cost_fn}, "
@@ -359,7 +358,9 @@ def main() -> None:  # noqa: PLR0914, PLR0915
                     (
                         "Low"
                         if p < RISK_BAND_LOW
-                        else "Medium" if p < RISK_BAND_HIGH else "High"
+                        else "Medium"
+                        if p < RISK_BAND_HIGH
+                        else "High"
                     )
                     for p in probs
                 ],
@@ -382,10 +383,12 @@ def main() -> None:  # noqa: PLR0914, PLR0915
             mlflow.log_metric(f"test_{metric_name}", metric_value)
         for metric_name, metric_value in risk_metrics.items():
             mlflow.log_metric(f"test_{metric_name}", metric_value)
-        mlflow.log_metric("optimal_threshold_cost", optimal_threshold)
+        mlflow.log_metric(
+            "optimal_threshold_cost", float(cast(float, optimal_threshold))
+        )
         mlflow.log_metric(
             "optimal_threshold_total_cost",
-            threshold_df.loc[optimal_idx, "total_cost"],
+            float(cast(float, threshold_df.loc[optimal_idx, "total_cost"])),
         )
 
         # === 8. ARTEfatos no MLflow ===

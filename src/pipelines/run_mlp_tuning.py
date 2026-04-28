@@ -15,6 +15,7 @@ import argparse
 import logging
 import os
 from pathlib import Path
+from typing import cast
 
 import mlflow
 import numpy as np
@@ -22,7 +23,7 @@ import optuna
 import pandas as pd
 import torch
 
-from src.configs.config import MLPConfig, TrainingConfig
+from src.config.models import MLPConfig, TrainingConfig
 from src.constants import (
     DEFAULT_DATASET_PATH,
     DEFAULT_MLP_EXPERIMENT_NAME,
@@ -84,8 +85,17 @@ def objective(  # noqa: PLR0913, PLR0914, PLR0917
         PR-AUC no conjunto de teste (a maximizar).
     """
     # === Espaço de busca de hiperparametros ===
-    hidden_dims = trial.suggest_categorical(
-        "hidden_dims", [(64, 32), (128, 64, 32), (256, 128, 64)]
+    _hidden_dims_choices: list[tuple[int, ...]] = [
+        (64, 32),
+        (128, 64, 32),
+        (256, 128, 64),
+    ]
+    hidden_dims = cast(
+        tuple[int, ...],
+        trial.suggest_categorical(
+            "hidden_dims",
+            _hidden_dims_choices,  # type: ignore[arg-type]
+        ),
     )
     dropout_rate = trial.suggest_float("dropout_rate", 0.1, 0.5, step=0.1)
     lr = trial.suggest_float("lr", 1e-4, 1e-2, log=True)
@@ -277,8 +287,8 @@ def main(  # noqa: PLR0914
     )
 
     with mlflow.start_run():
-        mlflow.log_input(train_input, context="training")
-        mlflow.log_input(test_input, context="testing")
+        mlflow.log_input(train_input, context="training")  # type: ignore[arg-type]
+        mlflow.log_input(test_input, context="testing")  # type: ignore[arg-type]
         mlflow.log_param("tuning_framework", "optuna")
         mlflow.log_param("n_trials", n_trials)
 
@@ -301,6 +311,7 @@ def main(  # noqa: PLR0914
         best = study.best_trial
         logger.info(f"Melhor trial: {best.number} pr_auc={best.value:.4f}")
         mlflow.log_params({f"best_{k}": v for k, v in best.params.items()})
+        assert best.value is not None
         mlflow.log_metric("best_pr_auc", best.value)
 
         # Salva scaler best
