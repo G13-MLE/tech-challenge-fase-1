@@ -7,8 +7,8 @@ from src.training.dummy_trainer import (
 )
 from src.training.logistic_trainer import (
     LogisticTrainingConfig,
-    train_logistic_classifier,
     cross_validate_logistic,
+    train_logistic_classifier,
 )
 from src.training.mlp import MLP, MLPForTraining, MLPTrainer
 
