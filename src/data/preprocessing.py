@@ -89,7 +89,8 @@ def one_hot_encode(
         DataFrame com colunas categoricas codificadas
     """
     if categorical_cols is None:
-        categorical_cols = df.select_dtypes(include=["object"]).columns.tolist()
+        cat_cols = df.select_dtypes(include=["object"]).columns
+        categorical_cols = cat_cols.tolist()
 
     if not categorical_cols:
         return df.copy()
@@ -217,4 +218,4 @@ def mlp_preprocess_data(
     X = np.asarray(X_df.values, dtype=np.float64)
     y = np.asarray(y_series.values, dtype=np.float64)
 
-    return X, y, feature_names
+    return X, y, feature_names, df_encoded

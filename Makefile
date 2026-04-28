@@ -122,7 +122,7 @@ train-logistic:
 	@echo "[WARN] Modelo ainda em desenvolvimento"
 	@echo "Próximo passo: criar src/pipelines/train_logistic.py"
 	@echo "Treinamento Logistic Regression concluído!"
-	@echo "✅ Containers parados!"
+	@echo "Containers parados!"
 
 # Analisar experimentos do MLflow
 analyze:
@@ -149,7 +149,7 @@ api-test:
 	curl -X POST "http://localhost:$${API_PORT:-8000}/predict" \
 	     -H "Content-Type: application/json" \
 	     -d '{"customerID": "1234-ABCD", "tenure": 5, "MonthlyCharges": 50.0, "Contract": "Month-to-month"}'
-	@echo "\n✅ Teste concluído!"
+	@echo "\nTeste concluído!"
 
 # Tuning de hiperparametros do MLP com Optuna
 tune-mlp:

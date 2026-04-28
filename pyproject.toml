@@ -43,6 +43,7 @@ dev = [
 [tool.ruff] # Configurando tools do pyprojetct. Tools sao usadas para configurar linters, formatadores e outras ferramentas de desenvolvimento.
 # Numero maximo de linhas 79, seguindo padrão da documentacao ruff.
 line-length = 79
+exclude = ["notebooks/"]
 
 [tool.ruff.lint]
 preview = true

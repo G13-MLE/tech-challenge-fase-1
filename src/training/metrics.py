@@ -511,9 +511,7 @@ def compute_precision_at_k(
     for kv in k_values:
         n_at_k = min(kv, len(y_true_arr))
         top_k_true = y_true_sorted[:n_at_k]
-        precision_k = (
-            np.mean(top_k_true) if n_at_k > 0 else 0.0
-        )
+        precision_k = np.mean(top_k_true) if n_at_k > 0 else 0.0
         recall_k = (
             np.sum(top_k_true) / np.sum(y_true_arr)
             if np.sum(y_true_arr) > 0
