@@ -67,6 +67,13 @@ PREDICTION_PROBABILITY = Histogram(
     ],
 )
 
+# Contador de detecções de data drift por feature
+DRIFT_DETECTIONS_TOTAL = Counter(
+    "drift_detections_total",
+    "Total de detecções de data drift por feature",
+    ["feature", "drift_detected"],
+)
+
 
 def metrics_exposition() -> bytes:
     """Gera o conteúdo no formato de exposição do Prometheus.

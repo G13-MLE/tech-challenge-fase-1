@@ -262,12 +262,12 @@ def _(pd):
     public_url = "https://raw.githubusercontent.com/IBM/telco-customer-churn-on-icp4d/master/data/Telco-Customer-Churn.csv"
 
     try:
-         df = pd.read_csv(local_path)
-         print(f"✓ Dataset carregado do arquivo local: {local_path}")
+        df = pd.read_csv(local_path)
+        print(f"✓ Dataset carregado do arquivo local: {local_path}")
     except (FileNotFoundError, OSError):
-         print(f"⚠ Arquivo local não encontrado. Carregando da URL pública...")
-         df = pd.read_csv(public_url)
-         print(f"✓ Dataset carregado da URL: {public_url}")
+        print(f"⚠ Arquivo local não encontrado. Carregando da URL pública...")
+        df = pd.read_csv(public_url)
+        print(f"✓ Dataset carregado da URL: {public_url}")
 
     print(f"Shape dos dados: {df.shape}")
     df.head()

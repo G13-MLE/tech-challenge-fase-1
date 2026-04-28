@@ -9,8 +9,13 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Response
 
+from src.api.drift import detect_drift
 from src.api.logging import LoggingConfig, request_id_ctx, setup_logging
-from src.api.metrics import PREDICTION_PROBABILITY, metrics_exposition
+from src.api.metrics import (
+    DRIFT_DETECTIONS_TOTAL,
+    PREDICTION_PROBABILITY,
+    metrics_exposition,
+)
 from src.api.middleware import LatencyMiddleware, RequestIDMiddleware
 from src.api.schemas import PredictRequest, PredictResponse
 
@@ -84,17 +89,40 @@ async def predict(
 
     PREDICTION_PROBABILITY.observe(probability)
 
-    logger.info(
-        "Predição concluída: %s",
+    # Detecção de data drift
+    drift_report = detect_drift(
         {
-            "customer_id": request.customer_id,
             "tenure": request.tenure,
-            "request_id": request_id_ctx.get(""),
-            "prediction_latency_ms": round(elapsed_ms, 2),
-            "churn_prediction": prediction,
-            "churn_probability": probability,
-        },
+            "MonthlyCharges": request.monthly_charges,
+            "Contract": request.contract,
+        }
     )
+
+    for feature_name, feature_info in drift_report.features.items():
+        DRIFT_DETECTIONS_TOTAL.labels(
+            feature=feature_name,
+            drift_detected=str(feature_info["score"] > 0.0).lower(),
+        ).inc()
+
+    log_data = {
+        "customer_id": request.customer_id,
+        "tenure": request.tenure,
+        "request_id": request_id_ctx.get(""),
+        "prediction_latency_ms": round(elapsed_ms, 2),
+        "churn_prediction": prediction,
+        "churn_probability": probability,
+        "drift_detected": drift_report.drift_detected,
+        "drift_score": drift_report.drift_score,
+    }
+
+    if drift_report.drift_detected:
+        logger.warning(
+            "Predição com data drift detectado: %s | %s",
+            log_data,
+            drift_report.features,
+        )
+    else:
+        logger.info("Predição concluída: %s", log_data)
 
     return PredictResponse(
         churn_probability=probability,
