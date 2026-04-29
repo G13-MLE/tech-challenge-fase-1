@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-_REFERENCE_STATS_PATH = Path("data/reference_stats.json")
+_REFERENCE_STATS_PATH = Path(__file__).with_name("reference_stats.json")
 
 # Thresholds de drift (PSI)
 _PSI_STABLE = 0.1

@@ -17,7 +17,7 @@ from typing import Any
 import pandas as pd
 
 _DATASET_PATH = Path("data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv")
-_OUTPUT_PATH = Path("data/reference_stats.json")
+_OUTPUT_PATH = Path("src/api/reference_stats.json")
 
 # Features monitoradas para drift (devem bater com PredictRequest)
 _NUMERIC_FEATURES = ["tenure", "MonthlyCharges"]
