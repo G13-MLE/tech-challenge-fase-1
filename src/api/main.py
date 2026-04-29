@@ -9,14 +9,13 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Response
 
-from src.api.drift import detect_drift
 from src.api.logging import LoggingConfig, request_id_ctx, setup_logging
-from src.api.metrics import (
-    DRIFT_DETECTIONS_TOTAL,
-    PREDICTION_PROBABILITY,
-    metrics_exposition,
+from src.api.metrics import PREDICTION_PROBABILITY, metrics_exposition
+from src.api.middleware import (
+    DriftMiddleware,
+    LatencyMiddleware,
+    RequestIDMiddleware,
 )
-from src.api.middleware import LatencyMiddleware, RequestIDMiddleware
 from src.api.schemas import PredictRequest, PredictResponse
 
 logger = logging.getLogger(__name__)
@@ -38,13 +37,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Registro de middleware: RequestIDMiddleware adicionado POR ÚLTIMO
-# para que execute PRIMEIRO na requisição (entrada) e POR ÚLTIMO na
-# resposta (saída) na ordem LIFO do FastAPI. Isso garante que o
-# request_id esteja definido quando LatencyMiddleware registrar o
-# log ao completar a resposta.
+# Registro de middleware (ordem LIFO do FastAPI):
+# DriftMiddleware adicionado POR ÚLTIMO para executar PRIMEIRO na entrada,
+# garantindo que o body seja lido e reconstruído antes dos demais.
+# RequestIDMiddleware é o último na saída (primeiro na entrada) para
+# garantir que o request_id esteja definido quando LatencyMiddleware
+# registrar o log ao completar a resposta.
 app.add_middleware(LatencyMiddleware)
 app.add_middleware(RequestIDMiddleware)
+app.add_middleware(DriftMiddleware)
 
 
 @app.get("/health", tags=["Saúde"])
@@ -89,40 +90,17 @@ async def predict(
 
     PREDICTION_PROBABILITY.observe(probability)
 
-    # Detecção de data drift
-    drift_report = detect_drift(
+    logger.info(
+        "Predição concluída: %s",
         {
+            "customer_id": request.customer_id,
             "tenure": request.tenure,
-            "MonthlyCharges": request.monthly_charges,
-            "Contract": request.contract,
-        }
+            "request_id": request_id_ctx.get(""),
+            "prediction_latency_ms": round(elapsed_ms, 2),
+            "churn_prediction": prediction,
+            "churn_probability": probability,
+        },
     )
-
-    for feature_name, feature_info in drift_report.features.items():
-        DRIFT_DETECTIONS_TOTAL.labels(
-            feature=feature_name,
-            drift_detected=str(feature_info["score"] > 0.0).lower(),
-        ).inc()
-
-    log_data = {
-        "customer_id": request.customer_id,
-        "tenure": request.tenure,
-        "request_id": request_id_ctx.get(""),
-        "prediction_latency_ms": round(elapsed_ms, 2),
-        "churn_prediction": prediction,
-        "churn_probability": probability,
-        "drift_detected": drift_report.drift_detected,
-        "drift_score": drift_report.drift_score,
-    }
-
-    if drift_report.drift_detected:
-        logger.warning(
-            "Predição com data drift detectado: %s | %s",
-            log_data,
-            drift_report.features,
-        )
-    else:
-        logger.info("Predição concluída: %s", log_data)
 
     return PredictResponse(
         churn_probability=probability,
