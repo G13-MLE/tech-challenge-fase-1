@@ -14,6 +14,7 @@ EXPECTED_METRICS_KEYS = {
     "f1_score",
     "roc_auc",
     "pr_auc",
+    "brier_score",
 }
 
 EXPECTED_CV_KEYS = {
@@ -30,9 +31,9 @@ EXPECTED_CV_KEYS = {
 }
 
 
-def make_numeric_data() -> (
-    tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
-):
+def make_numeric_data() -> tuple[
+    np.ndarray, np.ndarray, np.ndarray, np.ndarray
+]:
     """Cria dataset numerico minimo para testes."""
     rng = np.random.default_rng(42)
     X = rng.random((100, 10)).astype(np.float32)

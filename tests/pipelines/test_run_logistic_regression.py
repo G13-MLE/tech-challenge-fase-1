@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from typing import Self
 
+import mlflow.sklearn as _mlflow_sklearn
 import numpy as np
 import pandas as pd
 import pytest
 
-import mlflow.sklearn as _mlflow_sklearn
 from src.pipelines.run_logistic_regression import main
 
 _N = 20
@@ -49,9 +49,7 @@ class _DummyRun:
     def __enter__(self) -> Self:
         return self
 
-    def __exit__(
-        self, exc_type: object, exc: object, tb: object
-    ) -> None:
+    def __exit__(self, exc_type: object, exc: object, tb: object) -> None:
         return None
 
 
@@ -61,9 +59,7 @@ def test_main_returns_zero_with_monkeypatched_flow(
     """main deve retornar 0 quando dependencias externas sao mockadas."""
     monkeypatch.setattr(
         "src.pipelines.run_logistic_regression.load_telco_data",
-        lambda _: pd.DataFrame(
-            {"col": [1, 2], "Churn": ["Yes", "No"]}
-        ),
+        lambda _: pd.DataFrame({"col": [1, 2], "Churn": ["Yes", "No"]}),
     )
     monkeypatch.setattr(
         "src.pipelines.run_logistic_regression.setup_mlflow",
@@ -86,7 +82,7 @@ def test_main_returns_zero_with_monkeypatched_flow(
     )
     monkeypatch.setattr(
         "src.pipelines.run_logistic_regression.mlflow.start_run",
-        lambda: _DummyRun(),
+        _DummyRun,
     )
     monkeypatch.setattr(
         "src.pipelines.run_logistic_regression.mlflow.log_params",
