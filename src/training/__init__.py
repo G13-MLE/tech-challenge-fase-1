@@ -14,11 +14,11 @@ from src.training.mlp import MLP, MLPForTraining, MLPTrainer
 
 __all__ = [
     "MLP",
-    "cross_validate_logistic",
     "DummyTrainingConfig",
     "LogisticTrainingConfig",
     "MLPForTraining",
     "MLPTrainer",
+    "cross_validate_logistic",
     "run_all_strategies",
     "train_dummy_strategy",
     "train_logistic_classifier",

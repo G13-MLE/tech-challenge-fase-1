@@ -96,12 +96,12 @@ docker-down:
 
 # Treinar todos os modelos
 train:
-    $(ENV_ERROR)
-    @echo "Treinando todos os modelos..."
-    make train-dummy
-    make train-mlp
-    make train-logistic
-    @echo "Todos os treinamentos concluidos!"
+	$(ENV_ERROR)
+	@echo "Treinando todos os modelos..."
+	make train-dummy
+	make train-mlp
+	make train-logistic
+	@echo "Todos os treinamentos concluidos!"
 
 # Treinar baseline DummyClassifier
 train-dummy:
@@ -119,10 +119,10 @@ train-mlp:
 
 # Futuro: Treinar modelo Logistic Regression
 train-logistic:
-    $(ENV_ERROR)
-    @echo "Treinando modelo Logistic Regression..."
-    uv run python -m src.pipelines.run_logistic_regression
-    @echo "Treinamento Logistic Regression concluido!"
+	$(ENV_ERROR)
+	@echo "Treinando modelo Logistic Regression..."
+	uv run python -m src.pipelines.run_logistic_regression
+	@echo "Treinamento Logistic Regression concluido!"
 
 # Iniciar API no Docker
 api-up:

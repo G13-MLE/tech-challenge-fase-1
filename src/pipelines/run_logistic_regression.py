@@ -37,7 +37,8 @@ from src.training import (
 )
 from src.training.mlflow_tracking import MLflowConfig, setup_mlflow
 
-def main() -> int:
+
+def main(argv: list[str] | None = None) -> int:
 
     parser = argparse.ArgumentParser(
         description="Treina modelo Logistic Regression para churn"
@@ -52,7 +53,7 @@ def main() -> int:
         default=None,
         help="Nome do experimento no MLflow",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     load_dotenv_silent()
 

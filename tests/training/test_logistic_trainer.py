@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
 from src.training import LogisticTrainingConfig, train_logistic_classifier
 from src.training.logistic_trainer import cross_validate_logistic

@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+import mlflow.sklearn as _mlflow_sklearn
 from src.pipelines.run_logistic_regression import main
 
 _N = 20
@@ -58,8 +59,6 @@ def test_main_returns_zero_with_monkeypatched_flow(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """main deve retornar 0 quando dependencias externas sao mockadas."""
-    import mlflow.sklearn as _mlflow_sklearn
-
     monkeypatch.setattr(
         "src.pipelines.run_logistic_regression.load_telco_data",
         lambda _: pd.DataFrame(
@@ -111,7 +110,7 @@ def test_main_returns_zero_with_monkeypatched_flow(
         lambda *args, **kwargs: None,
     )
 
-    assert main() == 0
+    assert main([]) == 0
 
 
 def test_main_raises_on_missing_target_column(
@@ -128,4 +127,4 @@ def test_main_raises_on_missing_target_column(
     )
 
     with pytest.raises(ValueError, match="Coluna alvo ausente"):
-        main()
+        main([])
