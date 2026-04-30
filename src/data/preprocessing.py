@@ -19,15 +19,17 @@ if TYPE_CHECKING:
 
 
 def remove_customer_id(df: pd.DataFrame) -> pd.DataFrame:
-    """Remove a coluna customerID do DataFrame.
+    """Remove a coluna customerID do DataFrame se existir.
 
     Args:
-        df: DataFrame bruto com coluna customerID
+        df: DataFrame com ou sem coluna customerID
 
     Returns:
-        DataFrame sem a coluna customerID
+        DataFrame sem a coluna customerID (se existia)
     """
-    return df.drop(columns=["customerID"])
+    if "customerID" in df.columns:
+        return df.drop(columns=["customerID"])
+    return df.copy()
 
 
 def encode_target(df: pd.DataFrame, target_col: str = "Churn") -> pd.DataFrame:
@@ -87,9 +89,8 @@ def one_hot_encode(
         DataFrame com colunas categoricas codificadas
     """
     if categorical_cols is None:
-        categorical_cols = df.select_dtypes(
-            include=["object"]
-        ).columns.tolist()
+        cat_cols = df.select_dtypes(include=["object"]).columns
+        categorical_cols = cat_cols.tolist()
 
     if not categorical_cols:
         return df.copy()
@@ -108,7 +109,7 @@ def split_features_target(
     """Separa DataFrame em features (X) e target (y).
 
     Args:
-        df: DataFrame com target ja codificado
+        df: DataFrame com target já codificado
         target_col: Nome da coluna target (default: "Churn")
 
     Returns:
@@ -147,7 +148,7 @@ def apply_scaling(
 
     Args:
         X: Array de features de shape (n_samples, n_features)
-        scaler: StandardScaler ja fitado nos dados de treino
+        scaler: StandardScaler já fitado nos dados de treino
 
     Returns:
         Array de features escaladas
@@ -181,47 +182,34 @@ def load_scaler(filepath: str) -> StandardScaler:
 def mlp_preprocess_data(
     df: pd.DataFrame,
 ) -> tuple[np.ndarray, np.ndarray, list[str], pd.DataFrame]:
-    """Preprocessa o DataFrame bruto do Telco para treino de ML.
+    """Preprocessa DataFrame ja limpo do Telco para treino MLP.
 
-    Esta funcao realiza transformacoes necessarias para preparar dados
-    tabulares para uma rede neural. NAO aplica StandardScaler - isso
-    deve ser feito APOS o split treino/teste para evitar data leakage.
-
-    Passos de preprocessamento:
-        1. Remove customerID (nao e uma feature)
-        2. Codifica Churn: "Yes"->1, "No"->0 (target binario)
-        3. Converte TotalCharges para numerico, preenchendo NaNs com 0
-        4. One-hot encoding para variaveis categoricas
-        5. Retorna features nao escaladas (scaling feito separadamente)
-
-    Por que cada passo:
-        - One-hot: Redes neurais requerem entrada numerica
-        - Sem StandardScaler aqui: Evita data leakage - scaler deve ser
-          fitado apenas no conjunto de treino
-        - drop_first=True: Evita multicolinearidade
+    NAO aplica StandardScaler - deve ser feito APOS o split
+    treino/teste para evitar data leakage.
 
     Args:
-        df: DataFrame bruto do dataset Telco Customer Churn
+        df: DataFrame LIMPO (saida de clean_telco_data())
 
     Returns:
         Tupla contendo:
             - X: Array de features de shape (n_samples, n_features)
-                 sem scaling aplicado
             - y: Array de targets de shape (n_samples,)
-            - feature_names: Lista com nomes das features
-                apos one-hot encoding
-            - df_encoded: DataFrame com features codificadas (sem scaling)
+            - feature_names: Lista de nomes das features
+            - df_encoded: DataFrame com features codificadas
+
+    Raises:
+        KeyError: Se a coluna "Churn" nao existir no DataFrame.
 
     Example:
-        >>> df = pd.read_csv("WA_Fn-UseC_-Telco-Customer-Churn.csv")
-        >>> X, y, features, df_enc = mlp_preprocess_data(df)
-        >>> print(f"Features: {len(features)}")  # ~45 apos one-hot
+        >>> import pandas as pd
+        >>> from src.data.cleaning import clean_telco_data
+        >>> raw = pd.read_csv("WA_Fn-UseC_-Telco-Customer-Churn.csv")
+        >>> df_clean = clean_telco_data(raw)  # limpeza EDA
+        >>> X, y, features, df_enc = mlp_preprocess_data(df_clean)
+        >>> print(f"Features: {len(features)}")  # ~45
     """
-    # Aplica cada etapa de preprocessamento de forma modular
-    df_clean = remove_customer_id(df)
-    df_clean = encode_target(df_clean)
-    df_clean = clean_total_charges(df_clean)
-    df_encoded = one_hot_encode(df_clean)
+    df_encoded = encode_target(df)
+    df_encoded = one_hot_encode(df_encoded)
 
     # Separa features e target
     X_df, y_series, feature_names = split_features_target(df_encoded)

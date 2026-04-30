@@ -1,32 +1,41 @@
-"""Funções utilitárias comuns para pipelines de ML.
-
-Este módulo fornece helpers para padrões repetidos em pipelines
-como carregamento de configuração, obtenção de nomes de experimentos,
-e versões de datasets.
-"""
+"""Funções utilitárias comuns para pipelines de ML."""
 
 from __future__ import annotations
 
 import os
 
+import numpy as np
+import torch
+
 from src.data.versioning import get_dataset_version_from_dvc
 
 
 def load_dotenv_silent() -> None:
-    """Carrega variáveis de ambiente do arquivo .env silenciosamente.
-
-    Não levanta erro se o pacote python-dotenv não estiver instalado
-    ou se o arquivo .env não existir. Útil para scripts que podem
-    rodar em ambientes sem dotenv.
-    """
+    """Carrega variáveis de ambiente do arquivo .env silenciosamente."""
     try:
         # nosec: B404 - lazy import necessário para fallback gracioso
         from dotenv import load_dotenv  # noqa: PLC0415
 
         load_dotenv()  # nosec: B108
     except ImportError:
-        # python-dotenv não instalado - usa variáveis de ambiente existentes
         pass
+
+
+def set_global_seed(seed: int) -> None:
+    """Define seed global para reprodutibilidade.
+
+    Configura seed em PyTorch, NumPy e CUDA para garantir
+    resultados reproduzíveis em pipelines de ML.
+
+    Args:
+        seed: Valor da semente para geração de números aleatórios.
+    """
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
 
 
 def get_experiment_name(
@@ -34,25 +43,7 @@ def get_experiment_name(
     env_var_name: str,
     default_name: str,
 ) -> str:
-    """Obtém nome do experimento com prioridade: CLI > env var > default.
-
-    Args:
-        cli_arg: Valor passado via argumento de linha de comando.
-            None se não fornecido.
-        env_var_name: Nome da variável de ambiente específica do modelo
-            (ex: "MLFLOW_MLP_EXPERIMENT_NAME").
-        default_name: Nome padrão se nem CLI nem env var forem fornecidos.
-
-    Returns:
-        Nome do experimento a ser usado
-
-    Example:
-        >>> name = get_experiment_name(
-        ...     "mlp-v2", "MLFLOW_MLP_EXPERIMENT_NAME", "mlp"
-        ... )
-        >>> print(name)
-        mlp-v2
-    """
+    """Obtém nome do experimento com prioridade: CLI > env var > default."""
     if cli_arg:
         return cli_arg
 
@@ -66,16 +57,8 @@ def get_experiment_name(
 def safe_get_dataset_version() -> str:
     """Obtém versão do dataset via DVC com fallback gracioso.
 
-    Tenta obter a versão do dataset via DVC. Se falhar (DVC não
-    configurado, arquivo não encontrado, etc.), retorna "unknown".
-
     Returns:
-        String com versão do dataset (hash Git de 8 chars) ou "unknown"
-
-    Example:
-        >>> version = safe_get_dataset_version()
-        >>> print(version)
-        abc123de
+        String com versão do dataset ou "unknown".
     """
     try:
         return get_dataset_version_from_dvc()

@@ -21,7 +21,7 @@ from torch.optim import SGD, Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 from torch.utils.data import DataLoader, TensorDataset
 
-from src.configs.config import TrainingConfig
+from src.config.models import TrainingConfig
 from src.constants import THRESHOLD
 from src.training.metrics import compute_binary_classification_metrics
 from src.training.mlp.checkpoint import save_best_model
@@ -159,7 +159,7 @@ class MLPTrainer:
             Histórico de treino com métricas por época:
             {'train_loss': [...], 'val_loss': [...], 'val_f1': [...], ...}
         """
-        # Cria split de validacao se nao fornecido
+        # Cria split de validação se não fornecido
         if X_val is None or y_val is None:
             val_size = int(len(X_train) * self.config.val_split)
             indices = np.random.permutation(len(X_train))

@@ -1,11 +1,4 @@
-"""MLP (Multi-Layer Perceptron) training module.
-
-Este pacote contém tudo relacionado ao treinamento de modelos MLP:
-- model: Definição da arquitetura MLP (MLP, MLPForTraining)
-- trainer: Treinador com loop de treino, early stopping, etc.
-- checkpoint: Salvamento de modelos PyTorch
-- early_stopping: Callback de parada antecipada
-"""
+"""MLP (Multi-Layer Perceptron) training module."""
 
 from __future__ import annotations
 

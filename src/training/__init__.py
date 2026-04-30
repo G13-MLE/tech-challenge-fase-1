@@ -10,6 +10,7 @@ from src.training.logistic_trainer import (
     cross_validate_logistic,
     train_logistic_classifier,
 )
+from src.training.metrics import compute_binary_classification_metrics
 from src.training.mlp import MLP, MLPForTraining, MLPTrainer
 
 __all__ = [
@@ -19,6 +20,7 @@ __all__ = [
     "MLPForTraining",
     "MLPTrainer",
     "cross_validate_logistic",
+    "compute_binary_classification_metrics",
     "run_all_strategies",
     "train_dummy_strategy",
     "train_logistic_classifier",

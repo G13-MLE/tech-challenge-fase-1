@@ -1,12 +1,12 @@
 """Pipeline de treino para modelo MLP (Multi-Layer Perceptron).
 
-Este script orquestra o treinamento do modelo MLP para predicao de churn:
+Este script orquestra o treinamento do modelo MLP para predição de churn:
 1. Carregamento dos dados brutos do dataset Telco Customer Churn
 2. Preprocessamento (codificacao, escalonamento SEM data leakage)
 3. Divisao treino/teste estratificada
 4. Configuracao e treino do modelo MLP
 5. Avaliacao no conjunto de teste
-6. Logging de metricas e modelo no MLflow
+6. Logging de métricas e modelo no MLflow
 
 Como usar:
     $ uv run python -m src.pipelines.run_mlp
@@ -24,19 +24,23 @@ import argparse
 import logging
 import os
 from pathlib import Path
+from typing import cast
 
 import mlflow
 import numpy as np
 import pandas as pd
 import torch
 
-from src.configs.config import MLPConfig, TrainingConfig
+from src.config.logging import setup_logging
+from src.config.models import MLPConfig, TrainingConfig
 
 # Limiar para converter probabilidades em predicoes binarias
 from src.constants import (
     DEFAULT_DATASET_PATH,
     DEFAULT_MLP_EXPERIMENT_NAME,
     RANDOM_SEED,
+    RISK_BAND_HIGH,
+    RISK_BAND_LOW,
     TARGET_COLUMN,
     THRESHOLD,
 )
@@ -53,21 +57,30 @@ from src.pipelines.common import (
     get_experiment_name,
     load_dotenv_silent,
     safe_get_dataset_version,
+    set_global_seed,
 )
 from src.training import MLPForTraining, MLPTrainer
-from src.training.metrics import compute_binary_classification_metrics
+from src.training.metrics import (
+    analyze_threshold_tradeoff,
+    compute_binary_classification_metrics,
+    compute_calibration_metrics,
+    compute_confusion_matrix,
+    compute_precision_at_k,
+    compute_risk_band_metrics,
+)
 from src.training.mlflow_tracking import (
     MLflowConfig,
     TrainTestData,
     build_mlflow_inputs,
     setup_mlflow,
 )
+from src.training.plots import save_calibration_curve, save_pr_curve
 
 logger = logging.getLogger(__name__)
 
 
 def main() -> None:  # noqa: PLR0914, PLR0915
-    """Funcao principal que executa o pipeline de treino completo.
+    """função principal que executa o pipeline de treino completo.
 
     Orquestra todo o fluxo de ML:
     1. Parse de argumentos da linha de comando
@@ -87,7 +100,7 @@ def main() -> None:  # noqa: PLR0914, PLR0915
     """
     # Configura argumentos de linha de comando
     parser = argparse.ArgumentParser(
-        description="Treina modelo MLP para predicao de churn"
+        description="Treina modelo MLP para predição de churn"
     )
     parser.add_argument(
         "--input",
@@ -101,19 +114,15 @@ def main() -> None:  # noqa: PLR0914, PLR0915
     )
     args = parser.parse_args()
 
-    # Carrega variaveis de ambiente (.env)
+    # Carrega variáveis de ambiente (.env)
     load_dotenv_silent()
 
+    # Inicializa logging estruturado
+    setup_logging()
+
     # === SEED GLOBAL PARA REPRODUTIBILIDADE ===
-    # Define seed no inicio do pipeline para garantir reproducibilidade
-    # em todas as operacoes randomicas (split, inicializacao de pesos, etc)
     logger.info(f"Definindo seed global: {RANDOM_SEED}")
-    torch.manual_seed(RANDOM_SEED)
-    np.random.seed(RANDOM_SEED)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(RANDOM_SEED)
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
+    set_global_seed(RANDOM_SEED)
 
     # Configura MLflow via modulo generico
     experiment_name = get_experiment_name(
@@ -136,8 +145,7 @@ def main() -> None:  # noqa: PLR0914, PLR0915
 
     # === 2. PREPROCESSAMENTO (SEM SCALING AINDA) ===
     logger.info("Preprocessando dados (one-hot encoding)")
-    # Preprocessamento: one-hot encoding, mas SEM scaling (evita data leakage)
-    X, y, feature_names, _df_processed = mlp_preprocess_data(df)
+    X, y, feature_names, _ = mlp_preprocess_data(df)
 
     # === 3. DIVISAO TREINO/TESTE ===
     logger.info(f"Dividindo dados: treino/teste com seed={RANDOM_SEED}")
@@ -180,7 +188,7 @@ def main() -> None:  # noqa: PLR0914, PLR0915
         y_test=y_test_arr,
     )
 
-    # Obtem versao do dataset via DVC
+    # Obtém versão do dataset via DVC
     dataset_version = safe_get_dataset_version()
 
     train_input, test_input = build_mlflow_inputs(
@@ -218,7 +226,7 @@ def main() -> None:  # noqa: PLR0914, PLR0915
         mlflow.log_input(train_input, context="training")  # type: ignore[arg-type]
         mlflow.log_input(test_input, context="testing")  # type: ignore[arg-type]
 
-        # Registra parametros da arquitetura
+        # Registra parâmetros da arquitetura
         mlflow.log_params(
             {
                 "input_dim": mlp_config.input_dim,
@@ -241,17 +249,17 @@ def main() -> None:  # noqa: PLR0914, PLR0915
         model = MLPForTraining(mlp_config)
         trainer = MLPTrainer(model, training_config)
 
-        # Treina com validacao e early stopping
+        # Treina com validação e early stopping
         logger.info("Iniciando treinamento")
         model_save_path = Path("models/churn_mlp_best.pt")
         _history = trainer.fit(
             X_train_scaled, y_train_arr, model_save_path=str(model_save_path)
         )
 
-        # Registra metricas de treino no MLflow
+        # Registra métricas de treino no MLflow
         trainer.log_to_mlflow()
 
-        logger.info("Treinamento concluido")
+        logger.info("Treinamento concluído")
 
         # === 7. AVALIACAO NO CONJUNTO DE TESTE ===
         model.model.eval()
@@ -271,14 +279,133 @@ def main() -> None:  # noqa: PLR0914, PLR0915
         )
         logger.info(f"Metricas de teste: {test_metrics}")
 
-        # Registra metricas de teste no MLflow
+        # --- Metricas adicionais: calibracao e custo ---
+        calib_metrics = compute_calibration_metrics(
+            y_true=y_test_arr, y_proba_positive=probs, n_bins=10
+        )
+        logger.info(f"Metricas de calibracao: {calib_metrics}")
+
+        # Custo estimado: FN = LTV perdido (500), FP = campanha (50)
+        cm = compute_confusion_matrix(y_true=y_test_arr, y_pred=preds)
+        cost_fn = 500.0
+        cost_fp = 50.0
+        total_cost = (
+            cm["false_negatives"] * cost_fn + cm["false_positives"] * cost_fp
+        )
+        logger.info(
+            f"Custo estimado: R$ {total_cost:.2f} "
+            f"(FN: {cm['false_negatives']} x {cost_fn}, "
+            f"FP: {cm['false_positives']} x {cost_fp})"
+        )
+
+        # Precision@k e Recall@k
+        pk_metrics = compute_precision_at_k(
+            y_true=y_test_arr,
+            y_proba_positive=probs,
+            k_values=(
+                100,
+                250,
+                500,
+                int(0.05 * len(y_test_arr)),
+                int(0.10 * len(y_test_arr)),
+                int(0.20 * len(y_test_arr)),
+            ),
+        )
+        logger.info(f"Precision@k/Recall@k: {pk_metrics}")
+
+        # Bandas de risco
+        risk_metrics = compute_risk_band_metrics(
+            y_true=y_test_arr,
+            y_proba_positive=probs,
+            thresholds=(0.30, 0.60),
+        )
+        logger.info(f"Metricas por banda de risco: {risk_metrics}")
+
+        # Analise de threshold tradeoff
+        threshold_df = analyze_threshold_tradeoff(
+            y_true=y_test_arr,
+            y_proba_positive=probs,
+            cost_fn=cost_fn,
+            cost_fp=cost_fp,
+        )
+        # Encontra threshold otimo (minimiza custo)
+        optimal_idx = threshold_df["total_cost"].idxmin()
+        optimal_threshold = float(
+            cast("float | int", threshold_df.loc[optimal_idx, "threshold"])
+        )
+        optimal_total_cost = float(
+            cast("float | int", threshold_df.loc[optimal_idx, "total_cost"])
+        )
+        logger.info(
+            f"Threshold otimo (custo): {optimal_threshold} "
+            f"com custo R$ {optimal_total_cost:.2f}"
+        )
+
+        # --- Salva plots como artefatos ---
+        reports_dir = Path("reports")
+        reports_dir.mkdir(parents=True, exist_ok=True)
+        pr_curve_path = reports_dir / "pr_curve_test.png"
+        calib_curve_path = reports_dir / "calibration_curve_test.png"
+        save_pr_curve(y_test_arr, probs, pr_curve_path)
+        save_calibration_curve(y_test_arr, probs, calib_curve_path)
+        logger.info(f"Plots salvos em {reports_dir}")
+
+        # --- Salva CSV com bandas de risco ---
+        risk_df = pd.DataFrame(
+            {
+                "customer_id": (
+                    df.iloc[y_test.index]["customerID"].values
+                    if "customerID" in df.columns
+                    else range(len(probs))
+                ),
+                "proba_churn": probs,
+                "risk_band": [
+                    (
+                        "Low"
+                        if p < RISK_BAND_LOW
+                        else "Medium"
+                        if p < RISK_BAND_HIGH
+                        else "High"
+                    )
+                    for p in probs
+                ],
+                "true_churn": y_test_arr.astype(int),
+            }
+        )
+        risk_csv_path = reports_dir / "risk_bands_test.csv"
+        risk_df.to_csv(risk_csv_path, index=False)
+        logger.info(f"Bandas de risco salvas em {risk_csv_path}")
+
+        # --- Registra metricas no MLflow ---
         for metric_name, metric_value in test_metrics.items():
             mlflow.log_metric(f"test_{metric_name}", metric_value)
+        for metric_name, metric_value in calib_metrics.items():
+            mlflow.log_metric(f"test_{metric_name}", metric_value)
+        mlflow.log_metric("test_total_cost", total_cost)
+        mlflow.log_metric("test_cost_fn", cm["false_negatives"] * cost_fn)
+        mlflow.log_metric("test_cost_fp", cm["false_positives"] * cost_fp)
+        for metric_name, metric_value in pk_metrics.items():
+            mlflow.log_metric(f"test_{metric_name}", metric_value)
+        for metric_name, metric_value in risk_metrics.items():
+            mlflow.log_metric(f"test_{metric_name}", metric_value)
+        mlflow.log_metric("optimal_threshold_cost", optimal_threshold)
+        mlflow.log_metric(
+            "optimal_threshold_total_cost",
+            optimal_total_cost,
+        )
+
+        # === 8. ARTEfatos no MLflow ===
+        mlflow.log_artifact(str(pr_curve_path), artifact_path="plots")
+        mlflow.log_artifact(str(calib_curve_path), artifact_path="plots")
+        mlflow.log_artifact(str(risk_csv_path), artifact_path="reports")
+        threshold_path = reports_dir / "threshold_tradeoff_test.csv"
+        threshold_df.to_csv(threshold_path, index=False)
+        mlflow.log_artifact(str(threshold_path), artifact_path="reports")
 
         # Salva modelo no MLflow registry
         mlflow.pytorch.log_model(model, "model")
 
-        # Salva scaler para inferencia
+        # Salva scaler para inferência
         scaler_path = Path("models/scaler.pkl")
         save_scaler(scaler, str(scaler_path))
         mlflow.log_artifact(str(scaler_path), artifact_path="preprocessing")
@@ -288,5 +415,4 @@ def main() -> None:  # noqa: PLR0914, PLR0915
 
 
 if __name__ == "__main__":  # pragma: no cover
-    logging.basicConfig(level=logging.INFO)
     main()

@@ -1,6 +1,6 @@
 """Pipeline do baseline DummyClassifier para churn.
 
-Fase 2: treino, metricas e registro no MLflow.
+Fase 2: treino, métricas e registro no MLflow.
 
 Este script atua como orquestrador, importando funções de outros
 módulos conforme a arquitetura modular do projeto.
@@ -8,9 +8,11 @@ módulos conforme a arquitetura modular do projeto.
 
 from __future__ import annotations
 
+import logging
 import sys
 from pathlib import Path
 
+from src.config.logging import setup_logging
 from src.constants import (
     DEFAULT_DUMMY_EXPERIMENT_NAME,
     POSITIVE_LABEL,
@@ -28,7 +30,14 @@ from src.pipelines.common import (
     safe_get_dataset_version,
 )
 from src.training import DummyTrainingConfig, run_all_strategies
-from src.training.mlflow_tracking import MLflowConfig, setup_mlflow
+from src.training.mlflow_tracking import (
+    MLflowConfig,
+    TrainTestData,
+    build_mlflow_inputs,
+    setup_mlflow,
+)
+
+logger = logging.getLogger(__name__)
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="ignore")
@@ -47,6 +56,9 @@ def main() -> int:
     """
     # Carrega variáveis de ambiente
     load_dotenv_silent()
+
+    # Inicializa logging estruturado
+    setup_logging()
 
     # Configuração do pipeline
     config = DummyTrainingConfig(target_column=TARGET_COLUMN)
@@ -73,12 +85,29 @@ def main() -> int:
         config.random_seed,
     )
 
-    # Obtém versão do dataset
+    # Obtem versao do dataset
     dataset_version = safe_get_dataset_version()
 
-    # Treina todas as estratégias e obtém resultados comparativos
+    # Prepara lineage de dados para MLflow
+    train_test_data = TrainTestData(
+        X_train=X_train, X_test=X_test, y_train=y_train, y_test=y_test
+    )
+    train_input, test_input = build_mlflow_inputs(
+        train_test_data,
+        config.target_column,
+        dataset_version,
+    )
+
+    # Treina todas as estrategias e obtem resultados comparativos
     results_df = run_all_strategies(
-        X_train, X_test, y_train, y_test, config, dataset_version
+        X_train,
+        X_test,
+        y_train,
+        y_test,
+        config,
+        dataset_version,
+        train_input=train_input,
+        test_input=test_input,
     )
 
     # Salva CSV comparativo localmente (sem run adicional no MLflow)
@@ -86,10 +115,16 @@ def main() -> int:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     results_df.to_csv(output_path, index=False)
 
-    # Exibe resumo
-    print("[Dummy Baseline] Treino/aval/log no MLflow concluídos com sucesso.")
-    print(f"[Dummy Baseline] Comparativo salvo em: {output_path}")
-    print(results_df.to_string(index=False))
+    # Exibe resumo via logging estruturado
+    logger.info("Treino/aval/log no MLflow concluídos com sucesso.")
+    logger.info(
+        "Comparativo salvo em: %s",
+        output_path,
+    )
+    logger.info(
+        "Resultados comparativos:\n%s",
+        results_df.to_string(index=False),
+    )
 
     return 0
 
