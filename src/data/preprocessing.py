@@ -89,9 +89,8 @@ def one_hot_encode(
         DataFrame com colunas categoricas codificadas
     """
     if categorical_cols is None:
-        categorical_cols = df.select_dtypes(
-            include=["object"]
-        ).columns.tolist()
+        cat_cols = df.select_dtypes(include=["object"]).columns
+        categorical_cols = cat_cols.tolist()
 
     if not categorical_cols:
         return df.copy()

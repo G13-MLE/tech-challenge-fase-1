@@ -311,8 +311,8 @@ def main(  # noqa: PLR0914
         best = study.best_trial
         logger.info(f"Melhor trial: {best.number} pr_auc={best.value:.4f}")
         mlflow.log_params({f"best_{k}": v for k, v in best.params.items()})
-        assert best.value is not None
-        mlflow.log_metric("best_pr_auc", best.value)
+        best_pr_auc = float(best.value) if best.value is not None else 0.0
+        mlflow.log_metric("best_pr_auc", best_pr_auc)
 
         # Salva scaler best
         scaler_path = Path("models/scaler.pkl")

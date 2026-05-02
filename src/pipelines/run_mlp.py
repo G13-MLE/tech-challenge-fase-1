@@ -145,7 +145,7 @@ def main() -> None:  # noqa: PLR0914, PLR0915
 
     # === 2. PREPROCESSAMENTO (SEM SCALING AINDA) ===
     logger.info("Preprocessando dados (one-hot encoding)")
-    X, y, feature_names, _df_encoded = mlp_preprocess_data(df)
+    X, y, feature_names, _ = mlp_preprocess_data(df)
 
     # === 3. DIVISAO TREINO/TESTE ===
     logger.info(f"Dividindo dados: treino/teste com seed={RANDOM_SEED}")
@@ -330,10 +330,15 @@ def main() -> None:  # noqa: PLR0914, PLR0915
         )
         # Encontra threshold otimo (minimiza custo)
         optimal_idx = threshold_df["total_cost"].idxmin()
-        optimal_threshold = threshold_df.loc[optimal_idx, "threshold"]
+        optimal_threshold = float(
+            cast("float | int", threshold_df.loc[optimal_idx, "threshold"])
+        )
+        optimal_total_cost = float(
+            cast("float | int", threshold_df.loc[optimal_idx, "total_cost"])
+        )
         logger.info(
             f"Threshold otimo (custo): {optimal_threshold} "
-            f"com custo R$ {threshold_df.loc[optimal_idx, 'total_cost']:.2f}"
+            f"com custo R$ {optimal_total_cost:.2f}"
         )
 
         # --- Salva plots como artefatos ---
@@ -383,12 +388,10 @@ def main() -> None:  # noqa: PLR0914, PLR0915
             mlflow.log_metric(f"test_{metric_name}", metric_value)
         for metric_name, metric_value in risk_metrics.items():
             mlflow.log_metric(f"test_{metric_name}", metric_value)
-        mlflow.log_metric(
-            "optimal_threshold_cost", float(cast(float, optimal_threshold))
-        )
+        mlflow.log_metric("optimal_threshold_cost", optimal_threshold)
         mlflow.log_metric(
             "optimal_threshold_total_cost",
-            float(cast(float, threshold_df.loc[optimal_idx, "total_cost"])),
+            optimal_total_cost,
         )
 
         # === 8. ARTEfatos no MLflow ===
