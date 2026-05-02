@@ -35,6 +35,7 @@ DEFAULT_MODEL_DIR: str = "models"
 # Nome padrão para experimento MLflow
 DEFAULT_MLP_EXPERIMENT_NAME: str = "tech-challenge-mlp"
 DEFAULT_DUMMY_EXPERIMENT_NAME: str = "tech-challenge-dummy-baseline"
+DEFAULT_LOGISTIC_EXPERIMENT_NAME: str = "tech-challenge-logistic-regression"
 
 # Latencia SLO threshold em milissegundos
 LATENCY_SLO_THRESHOLD_MS: float = 500.0

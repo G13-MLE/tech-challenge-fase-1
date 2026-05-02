@@ -17,10 +17,10 @@ help:
 	@echo "  make setup      - Configurar ambiente (uv sync + pre-commit)"
 	@echo ""
 	@echo "Docker:"
-	@echo "  make docker-up  - Iniciar MLflow em background (requer .env)"
+	@echo "  make docker-up   - Iniciar MLflow em background (requer .env)"
 	@echo "  make docker-down - Parar todos os containers MLflow"
-	@echo "  make api-up     - Iniciar API FastAPI + Prometheus em background"
-	@echo "  make api-down   - Parar containers da API e Prometheus"
+	@echo "  make api-up     - Iniciar API FastAPI + Prometheus + Grafana em background"
+	@echo "  make api-down   - Parar containers da API, Prometheus e Grafana"
 	@echo "  make api-test   - Testar endpoint de predição via cURL"
 	@echo ""
 	@echo "Desenvolvimento:"
@@ -29,9 +29,10 @@ help:
 	@echo "  make format     - Formatar código com ruff"
 	@echo ""
 	@echo "ML:"
-	@echo "  make train      - Treinar todos os modelos (requer .env + MLflow)"
-	@echo "  make train-dummy - Treinar baseline DummyClassifier"
-	@echo "  make train-mlp  - Treinar modelo MLP (requer .env + MLflow)"
+	@echo "  make train          - Treinar todos os modelos (requer .env + MLflow)"
+	@echo "  make train-dummy    - Treinar baseline DummyClassifier"
+	@echo "  make train-mlp      - Treinar modelo MLP"
+	@echo "  make train-logistic - Treinar modelo Logistic Regression"
 	@echo ""
 
 # Setup inicial
@@ -99,7 +100,8 @@ train:
 	@echo "Treinando todos os modelos..."
 	make train-dummy
 	make train-mlp
-	@echo "Todos os treinamentos concluídos!"
+	make train-logistic
+	@echo "Todos os treinamentos concluidos!"
 
 # Treinar baseline DummyClassifier
 train-dummy:
@@ -119,10 +121,8 @@ train-mlp:
 train-logistic:
 	$(ENV_ERROR)
 	@echo "Treinando modelo Logistic Regression..."
-	@echo "[WARN] Modelo ainda em desenvolvimento"
-	@echo "Próximo passo: criar src/pipelines/train_logistic.py"
-	@echo "Treinamento Logistic Regression concluído!"
-	@echo "✅ Containers parados!"
+	uv run python -m src.pipelines.run_logistic_regression
+	@echo "Treinamento Logistic Regression concluido!"
 
 # Analisar experimentos do MLflow
 analyze:
@@ -152,7 +152,7 @@ api-test:
 	curl -X POST "http://localhost:$${API_PORT:-8000}/predict" \
 	     -H "Content-Type: application/json" \
 	     -d '{"customerID": "1234-ABCD", "tenure": 5, "MonthlyCharges": 50.0, "Contract": "Month-to-month"}'
-	@echo "\n✅ Teste concluído!"
+	@echo "\nTeste concluído!"
 
 # Tuning de hiperparametros do MLP com Optuna
 tune-mlp:

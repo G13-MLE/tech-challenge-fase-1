@@ -122,9 +122,9 @@ def run_all_strategies(  # noqa: PLR0913, PLR0917
         run_name = f"dummy_{strategy}"
         with mlflow.start_run(run_name=run_name):
             if train_input is not None:
-                mlflow.log_input(train_input, context="training")
+                mlflow.log_input(train_input, context="training")  # type: ignore[arg-type]
             if test_input is not None:
-                mlflow.log_input(test_input, context="testing")
+                mlflow.log_input(test_input, context="testing")  # type: ignore[arg-type]
 
             mlflow.log_param("model_type", "DummyClassifier")
             mlflow.log_param("strategy", strategy)
