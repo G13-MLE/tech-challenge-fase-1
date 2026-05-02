@@ -82,8 +82,7 @@ def test_detect_drift_numeric_out_of_range(
 def test_detect_drift_rare_numeric_bin(
     mock_reference: dict[str, dict[str, object]],
 ) -> None:
-    """Bin com proporção muito baixa deve gerar score > 0."""
-    # Altera baseline para ter um bin muito raro
+    """Valor dentro do range nao dispara drift, mesmo em bin raro."""
     ref = mock_reference.copy()
     ref["features"] = dict(ref["features"])
     ref["features"]["tenure"] = {
@@ -100,8 +99,8 @@ def test_detect_drift_rare_numeric_bin(
         reference=ref,
     )
 
-    assert report.drift_detected is True
-    assert report.features["tenure"]["score"] > 0.0
+    assert report.drift_detected is False
+    assert report.features["tenure"]["score"] == 0.0
 
 
 def test_detect_drift_unknown_category(
@@ -124,7 +123,7 @@ def test_detect_drift_unknown_category(
 def test_detect_drift_rare_category(
     mock_reference: dict[str, dict[str, object]],
 ) -> None:
-    """Categoria rara (proporção < 5%) deve gerar drift."""
+    """Categoria existente na baseline, mesmo rara, nao gera drift."""
     ref = mock_reference.copy()
     ref["features"] = dict(ref["features"])
     ref["features"]["Contract"] = {
@@ -141,8 +140,8 @@ def test_detect_drift_rare_category(
         reference=ref,
     )
 
-    assert report.drift_detected is True
-    assert report.features["Contract"]["score"] > 0.0
+    assert report.drift_detected is False
+    assert report.features["Contract"]["score"] == 0.0
 
 
 def test_detect_drift_uses_default_reference() -> None:

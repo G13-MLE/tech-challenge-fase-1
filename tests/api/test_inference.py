@@ -182,19 +182,19 @@ class TestPreprocessForInference:
 
     @staticmethod
     def test_drop_first_category() -> None:
-        feature_names = ["gender_Male", "Partner_No", "tenure"]
+        feature_names = ["gender_Male", "Partner_Yes", "tenure"]
         df = pd.DataFrame(
             [
                 {
                     "gender": "Male",
-                    "Partner": "No",
+                    "Partner": "Yes",
                     "tenure": 10,
                 }
             ]
         )
         X = _preprocess_for_inference(df, feature_names)
         assert X[0, 0] == 1.0  # gender_Male
-        assert X[0, 1] == 1.0  # Partner_No
+        assert X[0, 1] == 1.0  # Partner_Yes
 
     @staticmethod
     def test_missing_features_filled_with_zero() -> None:

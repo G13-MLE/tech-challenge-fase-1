@@ -27,7 +27,27 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 # Features monitoradas para drift (devem bater com PredictRequest)
-_DRIFT_FEATURES = ["tenure", "MonthlyCharges", "Contract"]
+_DRIFT_FEATURES = [
+    "gender",
+    "SeniorCitizen",
+    "Partner",
+    "Dependents",
+    "tenure",
+    "PhoneService",
+    "MultipleLines",
+    "InternetService",
+    "OnlineSecurity",
+    "OnlineBackup",
+    "DeviceProtection",
+    "TechSupport",
+    "StreamingTV",
+    "StreamingMovies",
+    "Contract",
+    "PaperlessBilling",
+    "PaymentMethod",
+    "MonthlyCharges",
+    "TotalCharges",
+]
 
 
 class DriftMiddleware(BaseHTTPMiddleware):

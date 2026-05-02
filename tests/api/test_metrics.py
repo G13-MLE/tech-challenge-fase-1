@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 from fastapi import status
 from fastapi.testclient import TestClient
 
 from src.api.main import app
+from tests.test_api import base_payload
 
 client = TestClient(app)
 
@@ -38,14 +41,12 @@ def test_http_request_duration_seconds_present() -> None:
     assert 'method="GET",path="/health"' in response.text
 
 
-def test_prediction_probability_histogram_populated() -> None:
+@patch("src.api.main.predict_single", return_value=0.85)
+def test_prediction_probability_histogram_populated(
+    mock_predict: object,
+) -> None:
     """O histograma de probabilidade deve registrar valores após /predict."""
-    payload = {
-        "customerID": "7590-VHVEG",
-        "tenure": 1,
-        "MonthlyCharges": 29.85,
-        "Contract": "Month-to-month",
-    }
+    payload = base_payload()
     response = client.post("/predict", json=payload)
     assert response.status_code == status.HTTP_200_OK
 

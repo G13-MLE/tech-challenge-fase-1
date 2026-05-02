@@ -17,13 +17,6 @@ from typing import Any
 
 _REFERENCE_STATS_PATH = Path(__file__).with_name("reference_stats.json")
 
-# Thresholds de drift (PSI)
-_PSI_STABLE = 0.1
-_PSI_MODERATE = 0.25
-
-# Threshold para categoria rara (proporção esperada mínima)
-_MIN_CATEGORY_PROPORTION = 0.05
-
 
 def _load_reference_stats(
     path: Path = _REFERENCE_STATS_PATH,
@@ -53,48 +46,33 @@ class DriftReport:
 
 
 def _compute_psi(value: float, baseline: dict[str, Any]) -> float:
-    """Calcula PSI para uma feature numérica contra bins de referência.
+    """Calcula score de drift para uma feature numerica.
 
-    Retorna 0.0 se o valor cair em um bin com proporção esperada > 0.
-    Se cair em bin vazio ou fora do range, retorna um valor alto.
+    Para comparacao single-sample, considera drift apenas se o valor
+    estiver fora do range [min, max] do treino. Valores dentro do
+    range, mesmo em bins raros, nao sao considerados drift.
     """
-    bins = baseline["bins"]
+    min_val = baseline["min"]
+    max_val = baseline["max"]
 
-    # Encontra em qual bin o valor cai
-    for b in bins:
-        if b["lower"] <= value <= b["upper"]:
-            expected = b["proportion"]
-            if expected <= 0:
-                return 1.0  # Bin vazio na baseline = certeza de drift
-            # PSI simplificado para 1 amostra:
-            # (1.0 - expected) * ln(1.0 / expected) quando temos 1 obs
-            # Mas como estamos comparando 1 amostra vs baseline:
-            # se expected for pequeno (< 0.1), consideramos drift significativo
-            if expected < _PSI_STABLE:
-                return (_PSI_STABLE - expected) / _PSI_STABLE
-            return 0.0
+    if value < min_val or value > max_val:
+        return 1.0
 
-    # Valor fora dos bins da baseline
-    return 1.0
+    return 0.0
 
 
 def _compute_categorical_drift(value: str, baseline: dict[str, Any]) -> float:
-    """Calcula drift para feature categórica.
+    """Calcula score de drift para feature categorica.
 
-    Retorna 1.0 se a categoria não existe na baseline ou for rara.
+    Para comparacao single-sample, considera drift apenas se a
+    categoria nunca foi vista nos dados de treino.
     """
     categories = baseline["categories"]
 
     for cat in categories:
         if cat["category"] == value:
-            proportion = cat["proportion"]
-            if proportion < _MIN_CATEGORY_PROPORTION:
-                return (
-                    _MIN_CATEGORY_PROPORTION - proportion
-                ) / _MIN_CATEGORY_PROPORTION
             return 0.0
 
-    # Categoria nunca vista no treino
     return 1.0
 
 

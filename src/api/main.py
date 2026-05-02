@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Response
 
+from src.api.inference import predict_single
 from src.api.logging import LoggingConfig, request_id_ctx, setup_logging
 from src.api.metrics import PREDICTION_PROBABILITY, metrics_exposition
 from src.api.middleware import (
