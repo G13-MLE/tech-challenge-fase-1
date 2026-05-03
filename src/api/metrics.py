@@ -6,7 +6,7 @@ para consumo por scrapers (ex: Grafana Agent, Prometheus Server).
 
 from __future__ import annotations
 
-from prometheus_client import Counter, Histogram, generate_latest
+from prometheus_client import Counter, Gauge, Histogram, generate_latest
 
 # Contador de requisições HTTP por método, status_code e path
 HTTP_REQUESTS_TOTAL = Counter(
@@ -72,6 +72,13 @@ DRIFT_DETECTIONS_TOTAL = Counter(
     "drift_detections_total",
     "Total de detecções de data drift por feature",
     ["feature", "drift_detected"],
+)
+
+# Gauge do PSI calculado por janela (amostragem real vs baseline)
+DRIFT_PSI_GAUGE = Gauge(
+    "drift_psi_score",
+    "PSI score por feature (janela de N requisicoes vs baseline)",
+    ["feature"],
 )
 
 

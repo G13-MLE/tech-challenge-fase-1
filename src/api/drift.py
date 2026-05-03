@@ -2,10 +2,11 @@
 
 Compara features de entrada contra uma baseline de treinamento
 (reference_stats.json) usando:
-- PSI (Population Stability Index) para features numéricas
-- Proporção esperada para features categóricas
 
-Tudo implementado manualmente — sem dependências pesadas.
+- Range check [min, max] para features numericas (per-request)
+- Categorias ineditas para features categoricas (per-request)
+
+Para PSI real por janela de amostras, veja src.api.drift_monitor.
 """
 
 from __future__ import annotations
@@ -45,7 +46,7 @@ class DriftReport:
     """Detalhes por feature: score, threshold, tipo."""
 
 
-def _compute_psi(value: float, baseline: dict[str, Any]) -> float:
+def _compute_range_drift(value: float, baseline: dict[str, Any]) -> float:
     """Calcula score de drift para uma feature numerica.
 
     Para comparacao single-sample, considera drift apenas se o valor
@@ -107,10 +108,12 @@ def detect_drift(
             continue
 
         value = features[feature_name]
+        if value is None:
+            continue
         baseline_type = baseline["type"]
 
         if baseline_type == "numeric":
-            score = _compute_psi(float(value), baseline)
+            score = _compute_range_drift(float(value), baseline)
         elif baseline_type == "categorical":
             score = _compute_categorical_drift(str(value), baseline)
         else:
