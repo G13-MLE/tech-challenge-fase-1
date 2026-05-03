@@ -1,4 +1,9 @@
-"""Pipeline do modelo de Logistic Regression para churn."""
+"""Pipeline do modelo de Logistic Regression para churn.
+
+Utiliza sklearn Pipeline com pre-processamento completo:
+imputacao, encoding, scaling e SMOTE para tratamento
+de desbalanceamento.
+"""
 
 from __future__ import annotations
 
@@ -19,11 +24,6 @@ from src.constants import (
     TARGET_COLUMN,
 )
 from src.data.load import load_telco_data
-from src.data.preprocessing import (
-    apply_scaling,
-    fit_scaler,
-    mlp_preprocess_data,
-)
 from src.data.splitting import split_train_test_stratified
 from src.data.validation import validate_required_columns
 from src.pipelines.common import (
@@ -43,57 +43,51 @@ from src.training.mlflow_tracking import MLflowConfig, setup_mlflow
 class PreparedData:
     """Dados preparados para treino e teste do modelo."""
 
-    X_train: np.ndarray
-    X_train_scaled: np.ndarray
-    X_test_scaled: np.ndarray
+    X_train: pd.DataFrame
+    X_test: pd.DataFrame
     y_train: np.ndarray
     y_test: np.ndarray
     feature_names: list[str]
 
 
-def _split_and_scale(
-    X: np.ndarray,
-    y: np.ndarray,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """Split treino/teste estratificado e aplica StandardScaler."""
-    df_for_split = pd.DataFrame(X)
-    df_for_split[TARGET_COLUMN] = y
-    X_train_df, X_test_df, y_train, y_test = split_train_test_stratified(
-        df_for_split,
-        TARGET_COLUMN,
-        test_size=DEFAULT_TEST_SIZE,
-        random_seed=RANDOM_SEED,
-    )
-
-    X_train = X_train_df.values
-    scaler = fit_scaler(X_train)
-    X_train_scaled = apply_scaling(X_train, scaler)
-    X_test_scaled = apply_scaling(X_test_df.values, scaler)
-
-    y_train_arr: np.ndarray = np.asarray(y_train.values, dtype=np.float32)
-    y_test_arr: np.ndarray = np.asarray(y_test.values, dtype=np.float32)
-
-    return X_train, X_train_scaled, X_test_scaled, y_train_arr, y_test_arr
-
-
 def _prepare_data(input_path: str) -> PreparedData:
-    """Carrega, preprocessa, faz split e scaling dos dados."""
+    """Carrega, limpa, separa features/target e faz split dos dados.
+
+    O pre-processamento (imputacao, encoding, scaling, SMOTE)
+    e feito pelo sklearn Pipeline dentro das funcoes de treino.
+    """
     df = load_telco_data(input_path)
     validate_required_columns(df, TARGET_COLUMN)
 
-    X, y, feature_names, *_ = mlp_preprocess_data(df)
+    if TARGET_COLUMN not in df.columns:
+        msg = f"Coluna alvo '{TARGET_COLUMN}' ausente do DataFrame"
+        raise ValueError(msg)
 
-    X_train, X_train_scaled, X_test_scaled, y_train, y_test = _split_and_scale(
-        X, y
+    y = df[TARGET_COLUMN].map({"Yes": 1, "No": 0}).to_numpy(dtype=np.float64)
+    X = df.drop(columns=[TARGET_COLUMN])
+
+    feature_names = list(X.columns)
+
+    X_with_target = X.copy()
+    X_with_target["_target_"] = y
+    X_train, X_test, y_train_series, y_test_series = (
+        split_train_test_stratified(
+            X_with_target,
+            "_target_",
+            test_size=DEFAULT_TEST_SIZE,
+            random_seed=RANDOM_SEED,
+        )
     )
+
+    y_train: np.ndarray = y_train_series.to_numpy(dtype=np.float64)
+    y_test: np.ndarray = y_test_series.to_numpy(dtype=np.float64)
 
     return PreparedData(
         X_train=X_train,
-        X_train_scaled=X_train_scaled,
-        X_test_scaled=X_test_scaled,
+        X_test=X_test,
         y_train=y_train,
         y_test=y_test,
-        feature_names=list(feature_names),
+        feature_names=feature_names,
     )
 
 
@@ -142,14 +136,16 @@ def main(argv: list[str] | None = None) -> int:
                 "max_iter": config.max_iter,
                 "random_seed": RANDOM_SEED,
                 "dataset_version": dataset_version,
-                "preprocessing": "one_hot_encoding",
+                "preprocessing": "sklearn_pipeline",
+                "imputation": "median(numeric)_constant(categorical)",
+                "encoding": "OneHotEncoder(drop=first)",
                 "scaling": "StandardScaler",
-                "scaling_fit_on": "train_only",
-                "num_features": len(prepared.feature_names),
+                "imbalance_handling": "SMOTE",
+                "original_features": len(prepared.feature_names),
                 "cv_folds": 5,
             }
         )
-        mlflow.set_tag("issue", "21")
+        mlflow.set_tag("issue", "28")
         mlflow.set_tag("baseline_family", "logistic")
         mlflow.set_tag("model_baseline", "logistic_regression")
 
@@ -157,8 +153,8 @@ def main(argv: list[str] | None = None) -> int:
             mlflow.log_metric(k, v)
 
         result = train_logistic_classifier(
-            prepared.X_train_scaled,
-            prepared.X_test_scaled,
+            prepared.X_train,
+            prepared.X_test,
             prepared.y_train,
             prepared.y_test,
             config,
@@ -167,10 +163,26 @@ def main(argv: list[str] | None = None) -> int:
         for k, v in result["metrics"].items():
             mlflow.log_metric(f"test_{k}", v)
 
+        pipeline = result["model"]
+        try:
+            encoded_names = list(
+                pipeline.named_steps["preprocessor"].get_feature_names_out()
+            )
+        except (AttributeError, KeyError):
+            encoded_names = prepared.feature_names
+
+        mlflow.log_param("encoded_features", len(encoded_names))
+
+        try:
+            classifier = pipeline.named_steps["classifier"]
+            coefs = classifier.coef_[0]
+        except (AttributeError, KeyError):
+            coefs = np.zeros(len(encoded_names))
+
         coef_df = pd.DataFrame(
             {
-                "feature": prepared.feature_names,
-                "coefficient": result["model"].coef_[0],
+                "feature": encoded_names,
+                "coefficient": coefs,
             }
         ).sort_values("coefficient", key=abs, ascending=False)
         coef_path = Path("models/logistic_feature_importance.csv")
@@ -178,7 +190,7 @@ def main(argv: list[str] | None = None) -> int:
         coef_df.to_csv(coef_path, index=False)
         mlflow.log_artifact(str(coef_path))
 
-        mlflow.sklearn.log_model(result["model"], "model")
+        mlflow.sklearn.log_model(pipeline, "model")
 
     print("[Logistic] Treino concluido com sucesso.")
     print(

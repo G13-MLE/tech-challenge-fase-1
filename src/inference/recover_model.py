@@ -19,7 +19,7 @@ from pathlib import Path
 import mlflow
 import pandas as pd
 
-from src.config.logging import setup_logging
+from src.api.logging import setup_logging
 from src.constants import (
     DEFAULT_DUMMY_EXPERIMENT_NAME,
     DEFAULT_LOGISTIC_EXPERIMENT_NAME,

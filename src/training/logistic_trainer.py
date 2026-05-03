@@ -2,6 +2,7 @@
 
 Fornece funcoes para treinar e avaliar o modelo de
 Logistic Regression com tracking no MLflow.
+Utiliza sklearn Pipeline para reprodutibilidade.
 """
 
 from __future__ import annotations
@@ -10,79 +11,77 @@ from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
-from sklearn.linear_model import LogisticRegression
+import pandas as pd
 from sklearn.model_selection import StratifiedKFold
 
 from src.constants import RANDOM_SEED
-from src.data.preprocessing import apply_scaling, fit_scaler
+from src.features.pipeline import build_logistic_pipeline
 from src.training.metrics import compute_binary_classification_metrics
 
 
 @dataclass(frozen=True)
 class LogisticTrainingConfig:
-    """Configuração para treino do LogisticRegression."""
+    """Configuracao para treino do LogisticRegression."""
 
     max_iter: int = 1000
     random_seed: int = RANDOM_SEED
 
 
 def train_logistic_classifier(
-    X_train: np.ndarray,
-    X_test: np.ndarray,
+    X_train: pd.DataFrame,
+    X_test: pd.DataFrame,
     y_train: np.ndarray,
     y_test: np.ndarray,
     config: LogisticTrainingConfig,
 ) -> dict[str, Any]:
-    """Treina um modelo de Logistic Regression e avalia seu desempenho."""
+    """Treina pipeline sklearn com Logistic Regression e avalia desempenho.
 
-    model = LogisticRegression(
-        max_iter=config.max_iter, random_state=config.random_seed
+    Constroi um pipeline com pre-processamento completo:
+    imputacao, encoding, scaling, SMOTE e classificador.
+    """
+
+    pipeline = build_logistic_pipeline(
+        max_iter=config.max_iter,
+        random_seed=config.random_seed,
     )
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
-    y_proba = model.predict_proba(X_test)[:, 1]
+    pipeline.fit(X_train, y_train)
+    y_pred = pipeline.predict(X_test)
+    y_proba = pipeline.predict_proba(X_test)[:, 1]
     metrics = compute_binary_classification_metrics(
         y_test, y_pred, y_proba, positive_label=None
     )
-    return {"model": model, "metrics": metrics}
+    return {"model": pipeline, "metrics": metrics}
 
 
 def cross_validate_logistic(
-    X_train_raw: np.ndarray,
+    X_train: pd.DataFrame,
     y_train: np.ndarray,
     config: LogisticTrainingConfig,
     n_folds: int = 5,
 ) -> dict[str, float]:
-    """Realiza cross-validation com Logistic Regression
-    e retorna métricas médias e std.
-    O cross-validation deve ser realizado no conjunto
-    de treino antes de aplicar scaling, para evitar data leakage.
-    Depois de definir os folds, o scaling deve ser aplicado
-    dentro de cada fold (fit no treino do fold, apply no teste do fold).
+    """Realiza cross-validation com Logistic Regression via sklearn Pipeline.
+
+    Constroi um pipeline novo por fold para evitar data leakage.
+    O pipeline gerencia internamente scaling e SMOTE dentro de cada fold.
     """
 
-    # Retorna: cv_accuracy_mean, cv_accuracy_std, cv_f1_mean, cv_f1_std...
     cv = StratifiedKFold(
         n_splits=n_folds, shuffle=True, random_state=config.random_seed
     )
     cv_results = []
-    for train_idx, test_idx in cv.split(X_train_raw, y_train):
-        X_fold_train = X_train_raw[train_idx]
-        X_fold_val = X_train_raw[test_idx]
+    for train_idx, test_idx in cv.split(X_train, y_train):
+        X_fold_train = X_train.iloc[train_idx]
+        X_fold_val = X_train.iloc[test_idx]
         y_fold_train = y_train[train_idx]
         y_fold_val = y_train[test_idx]
 
-        # Scaling dentro do fold - evita data leakage
-        fold_scaler = fit_scaler(X_fold_train)
-        X_fold_train_scaled = apply_scaling(X_fold_train, fold_scaler)
-        X_fold_val_scaled = apply_scaling(X_fold_val, fold_scaler)
-
-        model = LogisticRegression(
-            max_iter=config.max_iter, random_state=config.random_seed
+        pipeline = build_logistic_pipeline(
+            max_iter=config.max_iter,
+            random_seed=config.random_seed,
         )
-        model.fit(X_fold_train_scaled, y_fold_train)
-        y_pred = model.predict(X_fold_val_scaled)
-        y_proba = model.predict_proba(X_fold_val_scaled)[:, 1]
+        pipeline.fit(X_fold_train, y_fold_train)
+        y_pred = pipeline.predict(X_fold_val)
+        y_proba = pipeline.predict_proba(X_fold_val)[:, 1]
         metrics = compute_binary_classification_metrics(
             y_fold_val, y_pred, y_proba, positive_label=None
         )

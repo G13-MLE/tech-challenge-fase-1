@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import numpy as np
+import pandas as pd
 
 from src.training import LogisticTrainingConfig, train_logistic_classifier
 from src.training.logistic_trainer import cross_validate_logistic
@@ -31,19 +32,47 @@ EXPECTED_CV_KEYS = {
 }
 
 
-def make_numeric_data() -> tuple[
-    np.ndarray, np.ndarray, np.ndarray, np.ndarray
-]:
-    """Cria dataset numerico minimo para testes."""
+def make_mixed_df(n_samples: int = 100) -> pd.DataFrame:
+    """Cria DataFrame sintetico com colunas numericas e categoricas."""
     rng = np.random.default_rng(42)
-    X = rng.random((100, 10)).astype(np.float32)
-    y = np.array([0, 1] * 50, dtype=np.float32)
-    return X[:80], X[80:], y[:80], y[80:]
+    return pd.DataFrame(
+        {
+            "tenure": rng.integers(0, 72, n_samples),
+            "MonthlyCharges": rng.uniform(20, 120, n_samples),
+            "TotalCharges": rng.uniform(0, 8000, n_samples),
+            "Contract": rng.choice(
+                ["Month-to-month", "One year", "Two year"], n_samples
+            ),
+            "gender": rng.choice(["Female", "Male"], n_samples),
+        }
+    )
+
+
+def make_binary_target(n_samples: int = 100) -> np.ndarray:
+    """Cria target binario com ~30% de positivos."""
+    y = np.zeros(n_samples, dtype=np.float64)
+    y[: n_samples // 3] = 1.0
+    rng = np.random.default_rng(42)
+    rng.shuffle(y)
+    return y
+
+
+def make_data() -> tuple[pd.DataFrame, pd.DataFrame, np.ndarray, np.ndarray]:
+    """Cria dados sinteticos completos (DataFrames + arrays)."""
+    X = make_mixed_df(100)
+    y = make_binary_target(100)
+    split_idx = 80
+    return (
+        X.iloc[:split_idx],
+        X.iloc[split_idx:],
+        y[:split_idx],
+        y[split_idx:],
+    )
 
 
 def test_train_logistic_classifier_returns_expected_keys() -> None:
     """train_logistic_classifier deve retornar dict com model e metrics."""
-    X_train, X_test, y_train, y_test = make_numeric_data()
+    X_train, X_test, y_train, y_test = make_data()
     config = LogisticTrainingConfig(random_seed=42)
 
     result = train_logistic_classifier(
@@ -56,7 +85,7 @@ def test_train_logistic_classifier_returns_expected_keys() -> None:
 
 def test_train_logistic_classifier_metrics_keys() -> None:
     """Metricas devem conter todas as chaves esperadas."""
-    X_train, X_test, y_train, y_test = make_numeric_data()
+    X_train, X_test, y_train, y_test = make_data()
     config = LogisticTrainingConfig(random_seed=42)
 
     result = train_logistic_classifier(
@@ -67,20 +96,22 @@ def test_train_logistic_classifier_metrics_keys() -> None:
 
 
 def test_train_logistic_classifier_model_is_fitted() -> None:
-    """Modelo deve ter coef_ apos o treino."""
-    X_train, X_test, y_train, y_test = make_numeric_data()
+    """Pipeline deve estar fitado apos o treino."""
+    X_train, X_test, y_train, y_test = make_data()
     config = LogisticTrainingConfig(random_seed=42)
 
     result = train_logistic_classifier(
         X_train, X_test, y_train, y_test, config
     )
 
-    assert hasattr(result["model"], "coef_")
+    pipeline = result["model"]
+    classifier = pipeline.named_steps["classifier"]
+    assert hasattr(classifier, "coef_")
 
 
 def test_cross_validate_logistic_returns_expected_keys() -> None:
     """cross_validate_logistic deve retornar todas as chaves esperadas."""
-    X_train, _, y_train, _ = make_numeric_data()
+    X_train, _, y_train, _ = make_data()
     config = LogisticTrainingConfig(random_seed=42)
 
     cv_results = cross_validate_logistic(X_train, y_train, config)
@@ -90,7 +121,7 @@ def test_cross_validate_logistic_returns_expected_keys() -> None:
 
 def test_cross_validate_logistic_values_in_range() -> None:
     """Metricas do CV devem estar entre 0 e 1."""
-    X_train, _, y_train, _ = make_numeric_data()
+    X_train, _, y_train, _ = make_data()
     config = LogisticTrainingConfig(random_seed=42)
 
     cv_results = cross_validate_logistic(X_train, y_train, config)
