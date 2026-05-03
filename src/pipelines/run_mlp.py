@@ -74,6 +74,7 @@ from src.training.mlflow_tracking import (
     build_mlflow_inputs,
     setup_mlflow,
 )
+from src.training.model_card import build_model_card
 from src.training.plots import (
     save_calibration_curve,
     save_confusion_matrix_plot,
@@ -435,6 +436,30 @@ def main() -> None:  # noqa: PLR0914, PLR0915
         save_scaler(scaler, str(scaler_path))
         mlflow.log_artifact(str(scaler_path), artifact_path="preprocessing")
         logger.info(f"Scaler salvo em {scaler_path}")
+
+        # === 9. MODEL CARD ===
+        mlp_card_values: dict[str, str | int | float] = {
+            "random_seed": RANDOM_SEED,
+            "dataset_version": dataset_version,
+        }
+        for metric_name, metric_value in test_metrics.items():
+            mlp_card_values[metric_name] = metric_value
+        for metric_name, metric_value in calib_metrics.items():
+            mlp_card_values[metric_name] = metric_value
+        mlp_card_values["total_cost"] = total_cost
+        mlp_card_values["cost_fn"] = cost_fn
+        mlp_card_values["cost_fp"] = cost_fp
+        mlp_card_values["optimal_threshold"] = optimal_threshold
+        mlp_card_values["optimal_total_cost"] = optimal_total_cost
+        mlp_card_values["tn"] = cm["true_negatives"]
+        mlp_card_values["fp"] = cm["false_positives"]
+        mlp_card_values["fn"] = cm["false_negatives"]
+        mlp_card_values["tp"] = cm["true_positives"]
+        mlp_card_values.update(pk_metrics)  # type: ignore[arg-type]
+        mlp_card_values.update(risk_metrics)  # type: ignore[arg-type]
+        mlflow.log_dict(
+            build_model_card("mlp", **mlp_card_values), "model_card.json"
+        )
 
         logger.info(f"Modelo salvo em {model_save_path}")
 

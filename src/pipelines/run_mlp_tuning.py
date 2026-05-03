@@ -53,6 +53,7 @@ from src.training.mlflow_tracking import (
     build_mlflow_inputs,
     setup_mlflow,
 )
+from src.training.model_card import build_model_card
 
 logger = logging.getLogger(__name__)
 
@@ -205,7 +206,7 @@ def objective(  # noqa: PLR0913, PLR0914, PLR0917
         return float(pr_auc)
 
 
-def main(  # noqa: PLR0914
+def main(  # noqa: PLR0914, PLR0915
     n_trials: int = 20,
     input_path: str = DEFAULT_DATASET_PATH,
     experiment_name_cli: str | None = None,
@@ -318,6 +319,21 @@ def main(  # noqa: PLR0914
         scaler_path = Path("models/scaler.pkl")
         save_scaler(scaler, str(scaler_path))
         mlflow.log_artifact(str(scaler_path), artifact_path="preprocessing")
+
+        # Model card do melhor modelo
+        card_values: dict[str, str | int | float] = {
+            "random_seed": RANDOM_SEED,
+            "dataset_version": dataset_version,
+        }
+        for kk, vv in study.best_params.items():
+            card_values[str(kk)] = (
+                float(vv) if isinstance(vv, (int, float)) else str(vv)
+            )
+        card_values["pr_auc"] = best_pr_auc
+        card_values["n_trials"] = n_trials
+        mlflow.log_dict(
+            build_model_card("mlp", **card_values), "model_card.json"
+        )
 
     # Salva resultados
     reports_dir = Path("reports")

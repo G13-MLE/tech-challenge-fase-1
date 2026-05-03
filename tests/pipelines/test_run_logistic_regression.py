@@ -119,6 +119,10 @@ def test_main_returns_zero_with_monkeypatched_flow(
         "log_model",
         lambda *args, **kwargs: None,
     )
+    monkeypatch.setattr(
+        "src.pipelines.run_logistic_regression.mlflow.log_dict",
+        lambda *args, **kwargs: None,
+    )
 
     assert main([]) == 0
 

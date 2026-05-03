@@ -37,6 +37,7 @@ from src.training import (
     train_logistic_classifier,
 )
 from src.training.mlflow_tracking import MLflowConfig, setup_mlflow
+from src.training.model_card import build_model_card
 
 
 @dataclass(frozen=True)
@@ -70,13 +71,11 @@ def _prepare_data(input_path: str) -> PreparedData:
 
     X_with_target = X.copy()
     X_with_target["_target_"] = y
-    X_train, X_test, y_train_series, y_test_series = (
-        split_train_test_stratified(
-            X_with_target,
-            "_target_",
-            test_size=DEFAULT_TEST_SIZE,
-            random_seed=RANDOM_SEED,
-        )
+    X_train, X_test, y_train_series, y_test_series = split_train_test_stratified(
+        X_with_target,
+        "_target_",
+        test_size=DEFAULT_TEST_SIZE,
+        random_seed=RANDOM_SEED,
     )
 
     y_train: np.ndarray = y_train_series.to_numpy(dtype=np.float64)
@@ -123,9 +122,7 @@ def main(argv: list[str] | None = None) -> int:
     prepared = _prepare_data(args.input)
     config = LogisticTrainingConfig()
 
-    cv_results = cross_validate_logistic(
-        prepared.X_train, prepared.y_train, config
-    )
+    cv_results = cross_validate_logistic(prepared.X_train, prepared.y_train, config)
 
     dataset_version = safe_get_dataset_version()
 
@@ -191,6 +188,16 @@ def main(argv: list[str] | None = None) -> int:
         mlflow.log_artifact(str(coef_path))
 
         mlflow.sklearn.log_model(pipeline, "model")
+        card_values: dict[str, str | int | float] = {
+            "random_seed": RANDOM_SEED,
+            "dataset_version": dataset_version,
+        }
+        for k, vr in result["metrics"].items():
+            card_values[k] = vr
+        card_values.update(cv_results)  # type: ignore[arg-type]
+        mlflow.log_dict(build_model_card("logistic", **card_values), "model_card.json")
+
+        mlflow.sklearn.log_model(result["model"], "model")
 
     print("[Logistic] Treino concluido com sucesso.")
     print(

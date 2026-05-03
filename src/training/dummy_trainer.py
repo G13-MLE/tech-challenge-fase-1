@@ -16,6 +16,7 @@ from sklearn.dummy import DummyClassifier
 
 from src.constants import POSITIVE_LABEL, RANDOM_SEED
 from src.training.metrics import compute_binary_classification_metrics
+from src.training.model_card import build_model_card
 
 logger = logging.getLogger(__name__)
 
@@ -142,6 +143,15 @@ def run_all_strategies(  # noqa: PLR0913, PLR0917
                 mlflow.log_metric(metric_name, metric_value)
 
             mlflow.sklearn.log_model(result["model"], "model")
+
+            card = build_model_card(
+                "dummy",
+                strategy=strategy,
+                random_seed=config.random_seed,
+                dataset_version=dataset_version,
+                **metrics,
+            )
+            mlflow.log_dict(card, "model_card.json")
 
         results.append({"strategy": strategy, **metrics})
 

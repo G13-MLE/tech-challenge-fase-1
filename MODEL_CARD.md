@@ -1,4 +1,17 @@
-# Model Card - Churn Prediction Telco
+# Model Card - Churn Prediction Telco (Template)
+
+## Sobre os marcadores [MLFLOW:...]
+
+Os valores marcados com `[MLFLOW:nome_da_metrica]` sao placeholders. O model
+card autoritativo com metricas populadas e gerado automaticamente durante o
+treino e registrado como artefato `model_card.json` em cada run do MLflow.
+
+Para visualizar:
+```bash
+make docker-up          # Inicia MLflow
+make train-dummy        # Ou make train-mlp / make train-logistic
+# Acessar http://localhost:5000, abrir o run, clicar em Artifacts > model_card.json
+```
 
 ## 1. Model Details
 
@@ -360,7 +373,7 @@ make train-dummy
 make train-mlp
 make train-logistic
 
-# Consultar MLflow UI
+# O model_card.json estara nos artefatos de cada run
 # http://localhost:5000
 ```
 
