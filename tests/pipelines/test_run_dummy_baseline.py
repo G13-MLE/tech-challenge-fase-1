@@ -118,6 +118,10 @@ def test_run_all_strategies_returns_three_rows(monkeypatch: object) -> None:
         "src.training.dummy_trainer.mlflow.log_input",
         lambda *args, **kwargs: None,
     )
+    monkeypatch.setattr(
+        "src.training.dummy_trainer.mlflow.sklearn.log_model",
+        lambda *args, **kwargs: None,
+    )
 
     results_df = run_all_strategies(
         X_train,

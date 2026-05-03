@@ -50,6 +50,10 @@ EXPERIMENT_NAMES_ENV = [
         "MLFLOW_MLP_EXPERIMENT_NAME",
         "tech-challenge-mlp",
     ),
+    os.getenv(
+        "MLFLOW_LOGISTIC_EXPERIMENT_NAME",
+        "tech-challenge-logistic-regression",
+    ),
 ]
 
 _PRIORITY_METRICS = [

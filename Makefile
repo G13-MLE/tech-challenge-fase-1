@@ -1,7 +1,7 @@
 # Makefile para o TechChallenge Fase 1
 # Comandos essenciais para desenvolvimento
 
-.PHONY: setup test lint format help docker-up docker-down api-up api-down api-test api-load api-load-watch train train-dummy train-mlp train-logistic analyze tune-mlp
+.PHONY: setup test lint format help docker-up docker-down api-up api-down api-test api-load api-load-watch train train-dummy train-mlp train-logistic compare-models analyze tune-mlp recover-model
 
 # Verifica se o arquivo .env existe
 CHECK_ENV := $(shell test -f .env && echo 1 || echo 0)
@@ -35,6 +35,9 @@ help:
 	@echo "  make train-dummy    - Treinar baseline DummyClassifier"
 	@echo "  make train-mlp      - Treinar modelo MLP"
 	@echo "  make train-logistic - Treinar modelo Logistic Regression"
+	@echo "  make compare-models  - Comparar MLP vs baselines e gerar relatorio"
+	@echo "  make analyze        - Analisar experimentos e gerar relatorio"
+	@echo "  make recover-model   - Recuperar modelo do MLflow (requer .env)"
 	@echo ""
 
 # Setup inicial
@@ -103,7 +106,8 @@ train:
 	make train-dummy
 	make train-mlp
 	make train-logistic
-	@echo "Todos os treinamentos concluidos!"
+	make compare-models
+	@echo "Todos os treinamentos e comparacao concluidos!"
 
 # Treinar baseline DummyClassifier
 train-dummy:
@@ -119,19 +123,26 @@ train-mlp:
 	uv run python -m src.pipelines.run_mlp
 	@echo "Treinamento MLP concluído!"
 
-# Futuro: Treinar modelo Logistic Regression
+# Treinar modelo Logistic Regression
 train-logistic:
 	$(ENV_ERROR)
 	@echo "Treinando modelo Logistic Regression..."
 	uv run python -m src.pipelines.run_logistic_regression
 	@echo "Treinamento Logistic Regression concluido!"
 
+# Comparar MLP vs modelos baseline
+compare-models:
+	@echo "Comparando MLP vs modelos baseline..."
+	uv run python -m src.pipelines.run_compare_models
+	@echo "Comparacao concluida! Relatorio em MLP_VERSUS_BASELINE.md"
+
 # Analisar experimentos do MLflow
 analyze:
 	$(ENV_ERROR)
 	@echo "Analisando experimentos no MLflow..."
 	uv run python -m src.tools.analyze_experiments --output reports/mlflow_analysis.csv
-	@echo "Analise concluida! CSV salvo em reports/mlflow_analysis.csv"
+	uv run python -m src.tools.analyze_report --input reports/mlflow_analysis.csv --output reports/experiment_comparison.md
+	@echo "Analise concluida! CSV salvo em reports/mlflow_analysis.csv, relatorio em reports/experiment_comparison.md"
 
 # Iniciar API + Prometheus + Grafana no Docker
 api-up:
@@ -173,3 +184,11 @@ tune-mlp:
 	@echo "Tuning de hiperparametros MLP com Optuna..."
 	uv run python -m src.pipelines.run_mlp_tuning --n-trials 20
 	@echo "Tuning concluido! Relatorio em reports/optuna_study.csv"
+
+# Recuperar modelo do MLflow
+recover-model:
+	$(ENV_ERROR)
+	@echo "Recuperando modelo do MLflow..."
+	@echo -n "Tipo de modelo (mlp/logistic/dummy): " && read model_type; \
+	uv run python -m src.inference.recover_model --model-type $$model_type --output models/recovered
+	@echo "Modelo recuperado com sucesso!"

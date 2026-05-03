@@ -62,17 +62,13 @@ logs/
 
 # Marimo WASM generated files
 notebooks/__marimo__/
-docs/
 !docs/.nojekyll
 !docs/_config.yml
 !docs/telco_customer_churn_data_dictionary.md
 !docs/.gitkeep
+
 # DVC
 /.dvc/config
 models/*
 !models/*.dvc
 !models/.gitignore
-!models/feature_names.json
-
-# Analyze reports
-reports

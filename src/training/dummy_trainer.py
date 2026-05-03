@@ -141,6 +141,8 @@ def run_all_strategies(  # noqa: PLR0913, PLR0917
             for metric_name, metric_value in metrics.items():
                 mlflow.log_metric(metric_name, metric_value)
 
+            mlflow.sklearn.log_model(result["model"], "model")
+
         results.append({"strategy": strategy, **metrics})
 
         logger.info(

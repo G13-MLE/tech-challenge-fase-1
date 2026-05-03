@@ -75,7 +75,13 @@ from src.training.mlflow_tracking import (
     build_mlflow_inputs,
     setup_mlflow,
 )
-from src.training.plots import save_calibration_curve, save_pr_curve
+from src.training.plots import (
+    save_calibration_curve,
+    save_confusion_matrix_plot,
+    save_loss_curve,
+    save_pr_curve,
+    save_roc_curve,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -227,6 +233,12 @@ def main() -> None:  # noqa: PLR0914, PLR0915
         mlflow.log_input(train_input, context="training")  # type: ignore[arg-type]
         mlflow.log_input(test_input, context="testing")  # type: ignore[arg-type]
 
+        # Tags para filtragem no MLflow
+        mlflow.set_tag("issue", "22")
+        mlflow.set_tag("baseline_family", "mlp")
+        mlflow.set_tag("model_baseline", "mlp_classifier")
+        mlflow.set_tag("random_seed", str(RANDOM_SEED))
+
         # Registra parâmetros da arquitetura
         mlflow.log_params(
             {
@@ -347,8 +359,18 @@ def main() -> None:  # noqa: PLR0914, PLR0915
         reports_dir.mkdir(parents=True, exist_ok=True)
         pr_curve_path = reports_dir / "pr_curve_test.png"
         calib_curve_path = reports_dir / "calibration_curve_test.png"
+        roc_curve_path = reports_dir / "roc_curve_test.png"
+        cm_path = reports_dir / "confusion_matrix_test.png"
+        loss_curve_path = reports_dir / "loss_curve.png"
         save_pr_curve(y_test_arr, probs, pr_curve_path)
         save_calibration_curve(y_test_arr, probs, calib_curve_path)
+        save_roc_curve(y_test_arr, probs, roc_curve_path)
+        save_confusion_matrix_plot(y_test_arr, preds, cm_path)
+        save_loss_curve(
+            trainer.history["train_loss"],
+            trainer.history["val_loss"],
+            loss_curve_path,
+        )
         logger.info(f"Plots salvos em {reports_dir}")
 
         # --- Salva CSV com bandas de risco ---
@@ -398,6 +420,9 @@ def main() -> None:  # noqa: PLR0914, PLR0915
         # === 8. ARTEfatos no MLflow ===
         mlflow.log_artifact(str(pr_curve_path), artifact_path="plots")
         mlflow.log_artifact(str(calib_curve_path), artifact_path="plots")
+        mlflow.log_artifact(str(roc_curve_path), artifact_path="plots")
+        mlflow.log_artifact(str(cm_path), artifact_path="plots")
+        mlflow.log_artifact(str(loss_curve_path), artifact_path="plots")
         mlflow.log_artifact(str(risk_csv_path), artifact_path="reports")
         threshold_path = reports_dir / "threshold_tradeoff_test.csv"
         threshold_df.to_csv(threshold_path, index=False)

@@ -112,6 +112,10 @@ def test_run_all_strategies_returns_dataframe(monkeypatch: object) -> None:
         "src.training.dummy_trainer.mlflow.log_metric",
         lambda *args, **kwargs: None,
     )
+    monkeypatch.setattr(
+        "src.training.dummy_trainer.mlflow.sklearn.log_model",
+        lambda *args, **kwargs: None,
+    )
 
     results_df = run_all_strategies(
         X_train, X_test, y_train, y_test, config, dataset_version="test123"
@@ -174,6 +178,10 @@ def test_run_all_strategies_logs_to_mlflow(monkeypatch: object) -> None:
     monkeypatch.setattr(
         "src.training.dummy_trainer.mlflow.log_metric",
         mock_log_metric,
+    )
+    monkeypatch.setattr(
+        "src.training.dummy_trainer.mlflow.sklearn.log_model",
+        lambda *args, **kwargs: None,
     )
 
     run_all_strategies(X_train, X_test, y_train, y_test, config)

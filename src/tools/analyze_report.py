@@ -1,8 +1,8 @@
 """Automatiza a analise comparativa de experimentos ML a partir do CSV.
 
 Le `reports/mlflow_analysis.csv` e gera um relatorio estruturado
-comparando Dummy Baseline e MLP, avaliando metricas, overfitting
-e underfitting.
+comparando Dummy Baseline, MLP e Logistic Regression, avaliando
+metricas, overfitting e underfitting.
 
 Uso:
     uv run python -m src.tools.analyze_report
@@ -55,6 +55,19 @@ _VAL_METRIC_COLS = {
     "val_auc": "metric.val_auc",
 }
 
+_CV_METRIC_COLS = {
+    "cv_accuracy_mean": "metric.cv_accuracy_mean",
+    "cv_accuracy_std": "metric.cv_accuracy_std",
+    "cv_f1_mean": "metric.cv_f1_mean",
+    "cv_f1_std": "metric.cv_f1_std",
+    "cv_precision_mean": "metric.cv_precision_mean",
+    "cv_precision_std": "metric.cv_precision_std",
+    "cv_recall_mean": "metric.cv_recall_mean",
+    "cv_recall_std": "metric.cv_recall_std",
+    "cv_roc_auc_mean": "metric.cv_roc_auc_mean",
+    "cv_roc_auc_std": "metric.cv_roc_auc_std",
+}
+
 # --- Constantes para diagnosticos de overfitting ---
 _GAP_AUC_LOW = 0.01
 _GAP_LOSS_LOW = 0.05
@@ -94,15 +107,21 @@ def load_data(csv_path: str) -> pd.DataFrame:
     return df
 
 
-def split_experiments(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Separa DataFrame em Dummy e MLP."""
+def split_experiments(
+    df: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Separa DataFrame em Dummy, MLP e Logistic Regression."""
     dummy_mask = df["experiment_name"].str.contains(
         "dummy", case=False, na=False
     )
     mlp_mask = df["experiment_name"].str.contains("mlp", case=False, na=False)
+    logistic_mask = df["experiment_name"].str.contains(
+        "logistic", case=False, na=False
+    )
     dummy_df = df[dummy_mask].copy()
     mlp_df = df[mlp_mask].copy()
-    return dummy_df, mlp_df
+    logistic_df = df[logistic_mask].copy()
+    return dummy_df, mlp_df, logistic_df
 
 
 def analyze_dummy(dummy_df: pd.DataFrame) -> dict[str, pd.DataFrame]:
@@ -203,6 +222,69 @@ def analyze_mlp(mlp_df: pd.DataFrame) -> dict[str, Any]:
     }
 
 
+def analyze_logistic(logistic_df: pd.DataFrame) -> dict[str, Any]:
+    """Analisa runs de Logistic Regression retornando estatisticas."""
+    test_auc_col = _TEST_METRIC_COLS["test_roc_auc"]
+    valid_mask = logistic_df[test_auc_col].notna()
+    valid_logistic = logistic_df[valid_mask].copy()
+
+    stats: dict[str, pd.DataFrame] = {}
+
+    # --- Metricas de teste ---
+    test_stats: dict[str, list[Any]] = {
+        "metric": [],
+        "mean": [],
+        "std": [],
+        "min": [],
+        "median": [],
+        "max": [],
+    }
+    for name, col in _TEST_METRIC_COLS.items():
+        if col not in valid_logistic.columns:
+            continue
+        s = pd.to_numeric(valid_logistic[col], errors="coerce")
+        test_stats["metric"].append(name)
+        test_stats["mean"].append(_safe_mean(s))
+        test_stats["std"].append(_safe_std(s))
+        test_stats["min"].append(
+            float(s.min()) if not s.dropna().empty else None  # type: ignore[arg-type]
+        )
+        test_stats["median"].append(
+            float(s.median()) if not s.dropna().empty else None  # type: ignore[arg-type]
+        )
+        test_stats["max"].append(
+            float(s.max()) if not s.dropna().empty else None  # type: ignore[arg-type]
+        )
+    stats["test"] = pd.DataFrame(test_stats)
+
+    # --- Metricas de cross-validation ---
+    cv_stats: dict[str, list[Any]] = {
+        "metric": [],
+        "mean": [],
+        "std": [],
+    }
+    for name, col in _CV_METRIC_COLS.items():
+        if col not in logistic_df.columns:
+            continue
+        s = pd.to_numeric(logistic_df[col], errors="coerce")
+        cv_stats["metric"].append(name)
+        cv_stats["mean"].append(_safe_mean(s))
+        cv_stats["std"].append(_safe_std(s))
+    stats["cv"] = pd.DataFrame(cv_stats)
+
+    # --- Melhor run por Test ROC-AUC ---
+    test_auc = pd.to_numeric(valid_logistic[test_auc_col], errors="coerce")
+    best_idx = test_auc.idxmax() if not test_auc.empty else None
+    best_run = valid_logistic.loc[best_idx] if best_idx is not None else None
+
+    return {
+        "test_stats": stats["test"],
+        "cv_stats": stats["cv"],
+        "best_run": best_run,
+        "num_runs": len(valid_logistic),
+    }
+
+
 def _render_dummy_section(
     dummy_stats: Mapping[str, pd.DataFrame],
 ) -> tuple[list[str], list[str]]:
@@ -260,7 +342,7 @@ def _render_mlp_section(
     lines: list[str] = []
     md_rows: list[str] = []
 
-    sec_mlp = "## 2. MLP"
+    sec_mlp = "## 3. MLP"
     console.print(f"\n[bold]{sec_mlp}[/bold]")
     lines.append(sec_mlp)
     lines.append("")
@@ -307,6 +389,136 @@ def _render_mlp_section(
     return lines, md_rows
 
 
+def _render_logistic_cv_table(
+    cv_stats: pd.DataFrame,
+) -> tuple[list[str], list[str]]:
+    """Renderiza tabela de metricas CV para Logistic Regression."""
+    lines: list[str] = []
+    md_rows: list[str] = []
+
+    console.print("\n[bold]Metricas de Cross-Validation[/bold]")
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("Metrica")
+    table.add_column("Media", justify="right")
+    table.add_column("Std", justify="right")
+
+    md_rows = [
+        "| Metrica | Media | Std |",
+        "|---------|-------|-----|",
+    ]
+
+    for _, row in cv_stats.iterrows():
+        table.add_row(
+            str(row["metric"]),
+            _fmt(row["mean"]),
+            _fmt(row["std"]),
+        )
+        md_rows.append(
+            f"| {row['metric']} | {_fmt(row['mean'])} | {_fmt(row['std'])} |"
+        )
+
+    console.print(table)
+    lines.extend(md_rows)
+    lines.append("")
+    return lines, md_rows
+
+
+def _render_logistic_test_table(
+    test_stats: pd.DataFrame,
+) -> tuple[list[str], list[str]]:
+    """Renderiza tabela de metricas de teste para Logistic Regression."""
+    lines: list[str] = []
+    md_rows: list[str] = []
+
+    console.print("\n[bold]Metricas de Teste (Logistic Regression)[/bold]")
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("Metrica")
+    table.add_column("Media", justify="right")
+    table.add_column("Std", justify="right")
+    table.add_column("Min", justify="right")
+    table.add_column("Mediana", justify="right")
+    table.add_column("Max", justify="right")
+
+    md_rows = [
+        "| Metrica | Media | Std | Min | Mediana | Max |",
+        "|---------|-------|-----|-----|---------|-----|",
+    ]
+
+    for _, row in test_stats.iterrows():
+        table.add_row(
+            str(row["metric"]),
+            _fmt(row["mean"]),
+            _fmt(row["std"]),
+            _fmt(row["min"]),
+            _fmt(row["median"]),
+            _fmt(row["max"]),
+        )
+        md_rows.append(
+            f"| {row['metric']} | {_fmt(row['mean'])} "
+            f"| {_fmt(row['std'])} | {_fmt(row['min'])} "
+            f"| {_fmt(row['median'])} | {_fmt(row['max'])} |"
+        )
+
+    console.print(table)
+    lines.extend(md_rows)
+    lines.append("")
+    return lines, md_rows
+
+
+def _render_logistic_section(
+    logistic_stats: dict[str, Any],
+) -> tuple[list[str], list[str]]:
+    """Retorna linhas Markdown e tabelas Rich para Logistic Regression."""
+    lines: list[str] = []
+    md_rows: list[str] = []
+
+    sec_lr = "## 2. Logistic Regression"
+    console.print(f"\n[bold]{sec_lr}[/bold]")
+    lines.append(sec_lr)
+    lines.append("")
+
+    num_runs = logistic_stats.get("num_runs", 0)
+    console.print(f"Runs validos analisados: [bold]{num_runs}[/bold]")
+    lines.append(f"**Runs validos analisados:** {num_runs}")
+    lines.append("")
+
+    # --- CV Metrics ---
+    cv_stats: pd.DataFrame = logistic_stats["cv_stats"]  # type: ignore[assignment]
+    if not cv_stats.empty:
+        cv_lines, _ = _render_logistic_cv_table(cv_stats)
+        lines.extend(cv_lines)
+
+    # --- Test Metrics ---
+    test_stats: pd.DataFrame = logistic_stats["test_stats"]  # type: ignore[assignment]
+    if not test_stats.empty:
+        test_lines, _ = _render_logistic_test_table(test_stats)
+        lines.extend(test_lines)
+
+    # --- Best run ---
+    best_run = logistic_stats.get("best_run")
+    if best_run is not None and not isinstance(best_run, float):
+        sec_best = "### Melhor Run Logistic (por Test ROC-AUC)"
+        console.print(f"[bold]{sec_best}[/bold]")
+        lines.append(sec_best)
+        lines.append("")
+
+        run_name = str(best_run.get("run_name", "N/A"))
+        run_id_short = str(best_run.get("run_id", "N/A"))[:8]
+        test_auc_val = best_run.get(_TEST_METRIC_COLS["test_roc_auc"], "N/A")
+        test_f1_val = best_run.get(_TEST_METRIC_COLS["test_f1_score"], "N/A")
+
+        console.print(f"Run: {run_name} ({run_id_short})")
+        console.print(f"Test ROC-AUC: {test_auc_val}")
+        console.print(f"Test F1-Score: {test_f1_val}")
+
+        lines.append(f"- **Run:** {run_name} (`{run_id_short}`)")
+        lines.append(f"- **Test ROC-AUC:** {test_auc_val}")
+        lines.append(f"- **Test F1-Score:** {test_f1_val}")
+        lines.append("")
+
+    return lines, md_rows
+
+
 def _render_overfitting_section(
     mlp_stats: dict[str, Any],
 ) -> tuple[list[str], list[str]]:
@@ -314,7 +526,7 @@ def _render_overfitting_section(
     lines: list[str] = []
     md_rows: list[str] = []
 
-    sec_of = "## 3. Analise de Overfitting / Underfitting"
+    sec_of = "## 4. Analise de Overfitting / Underfitting"
     console.print(f"\n[bold]{sec_of}[/bold]")
     lines.append(sec_of)
     lines.append("")
@@ -389,7 +601,7 @@ def _render_best_run_section(
 
     best_run = mlp_stats.get("best_run")
     if best_run is not None and not isinstance(best_run, float):
-        sec_best = "## 4. Melhor Run MLP (por Test ROC-AUC)"
+        sec_best = "## 5. Melhor Run MLP (por Test ROC-AUC)"
         console.print(f"[bold]{sec_best}[/bold]")
         lines.append(sec_best)
         lines.append("")
@@ -414,17 +626,24 @@ def _render_best_run_section(
 def print_report(
     dummy_stats: Mapping[str, pd.DataFrame],
     mlp_stats: dict[str, Any],
+    logistic_stats: dict[str, Any],
 ) -> str:
     """Imprime relatorio no terminal e retorna texto Markdown."""
     lines: list[str] = []
 
-    header = "# Relatorio de Analise: Dummy Baseline vs MLP"
+    header = (
+        "# Relatorio de Analise: Dummy Baseline vs Logistic Regression vs MLP"
+    )
     console.print(f"\n[bold cyan]{header}[/bold cyan]\n")
     lines.append(header)
     lines.append("")
 
     # === DUMMY ===
     _ = _render_dummy_section(dummy_stats)
+    lines.extend(_[0])
+
+    # === LOGISTIC REGRESSION ===
+    _ = _render_logistic_section(logistic_stats)
     lines.extend(_[0])
 
     # === MLP ===
@@ -468,17 +687,20 @@ def main(args: Sequence[str] | None = None) -> int:
         return 1
 
     df = load_data(str(csv_path))
-    dummy_df, mlp_df = split_experiments(df)
+    dummy_df, mlp_df, logistic_df = split_experiments(df)
 
     if dummy_df.empty:
         console.print("[WARN] Nenhuma run Dummy encontrada.")
     if mlp_df.empty:
         console.print("[WARN] Nenhuma run MLP encontrada.")
+    if logistic_df.empty:
+        console.print("[WARN] Nenhuma run Logistic Regression encontrada.")
 
     dummy_stats = analyze_dummy(dummy_df)
     mlp_stats = analyze_mlp(mlp_df)
+    logistic_stats = analyze_logistic(logistic_df)
 
-    markdown = print_report(dummy_stats, mlp_stats)
+    markdown = print_report(dummy_stats, mlp_stats, logistic_stats)
 
     if parsed.output:
         out_path = Path(parsed.output)

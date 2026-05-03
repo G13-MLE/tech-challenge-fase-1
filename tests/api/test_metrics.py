@@ -9,20 +9,41 @@ from fastapi.testclient import TestClient
 
 from src.api.main import app
 from src.api.metrics import DRIFT_PSI_GAUGE
-from tests.test_api import base_payload
 
 client = TestClient(app)
 
+_FULL_PAYLOAD = {
+    "customerID": "7590-VHVEG",
+    "gender": "Female",
+    "SeniorCitizen": 0,
+    "Partner": "Yes",
+    "Dependents": "No",
+    "tenure": 1,
+    "PhoneService": "No",
+    "MultipleLines": "No phone service",
+    "InternetService": "DSL",
+    "OnlineSecurity": "No",
+    "OnlineBackup": "Yes",
+    "DeviceProtection": "No",
+    "TechSupport": "No",
+    "StreamingTV": "No",
+    "StreamingMovies": "No",
+    "Contract": "Month-to-month",
+    "PaperlessBilling": "Yes",
+    "PaymentMethod": "Electronic check",
+    "MonthlyCharges": 29.85,
+}
+
 
 def test_metrics_endpoint_returns_prometheus_text() -> None:
-    """/metrics deve retornar conteúdo no formato Prometheus."""
+    """/metrics deve retornar conteudo no formato Prometheus."""
     response = client.get("/metrics")
     assert response.status_code == status.HTTP_200_OK
     assert "text/plain" in response.headers["content-type"]
 
 
 def test_http_requests_total_present() -> None:
-    """O contador http_requests_total deve aparecer nas métricas."""
+    """O contador http_requests_total deve aparecer nas metricas."""
     client.get("/health")
 
     response = client.get("/metrics")
@@ -33,7 +54,7 @@ def test_http_requests_total_present() -> None:
 
 
 def test_http_request_duration_seconds_present() -> None:
-    """O histograma de latência deve aparecer nas métricas expostas."""
+    """O histograma de latencia deve aparecer nas metricas expostas."""
     client.get("/health")
 
     response = client.get("/metrics")
@@ -46,9 +67,8 @@ def test_http_request_duration_seconds_present() -> None:
 def test_prediction_probability_histogram_populated(
     mock_predict: object,
 ) -> None:
-    """O histograma de probabilidade deve registrar valores após /predict."""
-    payload = base_payload()
-    response = client.post("/predict", json=payload)
+    """O histograma de probabilidade deve registrar valores apos /predict."""
+    response = client.post("/predict", json=_FULL_PAYLOAD)
     assert response.status_code == status.HTTP_200_OK
 
     response = client.get("/metrics")
