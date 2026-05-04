@@ -20,8 +20,25 @@ _DATASET_PATH = Path("data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv")
 _OUTPUT_PATH = Path("src/api/reference_stats.json")
 
 # Features monitoradas para drift (devem bater com PredictRequest)
-_NUMERIC_FEATURES = ["tenure", "MonthlyCharges"]
-_CATEGORICAL_FEATURES = ["Contract"]
+_NUMERIC_FEATURES = ["tenure", "MonthlyCharges", "TotalCharges"]
+_CATEGORICAL_FEATURES = [
+    "gender",
+    "SeniorCitizen",
+    "Partner",
+    "Dependents",
+    "PhoneService",
+    "MultipleLines",
+    "InternetService",
+    "OnlineSecurity",
+    "OnlineBackup",
+    "DeviceProtection",
+    "TechSupport",
+    "StreamingTV",
+    "StreamingMovies",
+    "Contract",
+    "PaperlessBilling",
+    "PaymentMethod",
+]
 
 # Número de bins para features numéricas
 _NUM_BINS = 10
@@ -91,6 +108,9 @@ def generate_reference_stats(
 ) -> dict[str, Any]:
     """Lê o dataset e gera estatísticas de referência para drift."""
     df = pd.read_csv(dataset_path)
+    df["TotalCharges"] = pd.to_numeric(
+        df["TotalCharges"], errors="coerce"
+    ).fillna(0.0)
 
     stats: dict[str, Any] = {
         "dataset": str(dataset_path),

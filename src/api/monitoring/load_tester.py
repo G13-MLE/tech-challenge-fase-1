@@ -39,9 +39,33 @@ def send_predict() -> None:
     """
     payload = {
         "customerID": f"CUST-{random.randint(1000, 9999)}",
+        "gender": random.choice(["Male", "Female"]),
+        "SeniorCitizen": random.randint(0, 1),
+        "Partner": random.choice(["Yes", "No"]),
+        "Dependents": random.choice(["Yes", "No"]),
         "tenure": random.randint(0, 72),
-        "MonthlyCharges": round(random.uniform(18.0, 120.0), 2),
+        "PhoneService": random.choice(["Yes", "No"]),
+        "MultipleLines": random.choice(["Yes", "No", "No phone service"]),
+        "InternetService": random.choice(["DSL", "Fiber optic", "No"]),
+        "OnlineSecurity": random.choice(["Yes", "No", "No internet service"]),
+        "OnlineBackup": random.choice(["Yes", "No", "No internet service"]),
+        "DeviceProtection": random.choice(
+            ["Yes", "No", "No internet service"]
+        ),
+        "TechSupport": random.choice(["Yes", "No", "No internet service"]),
+        "StreamingTV": random.choice(["Yes", "No", "No internet service"]),
+        "StreamingMovies": random.choice(["Yes", "No", "No internet service"]),
         "Contract": random.choice(["Month-to-month", "One year", "Two year"]),
+        "PaperlessBilling": random.choice(["Yes", "No"]),
+        "PaymentMethod": random.choice(
+            [
+                "Electronic check",
+                "Mailed check",
+                "Bank transfer (automatic)",
+                "Credit card (automatic)",
+            ]
+        ),
+        "MonthlyCharges": round(random.uniform(18.0, 120.0), 2),
     }
     httpx.post(
         f"{_API_URL}/predict", json=payload, timeout=10

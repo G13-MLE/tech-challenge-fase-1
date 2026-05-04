@@ -10,7 +10,7 @@ from src.api.main import app
 client = TestClient(app)
 
 
-def _base_payload() -> dict[str, object]:
+def base_payload() -> dict[str, object]:
     return {
         "customerID": "7590-VHVEG",
         "gender": "Female",
@@ -42,7 +42,7 @@ def test_health_check() -> None:
 
 @patch("src.api.main.predict_single", return_value=0.85)
 def test_predict_endpoint_high_churn(mock_predict: object) -> None:
-    payload = _base_payload()
+    payload = base_payload()
     response = client.post("/predict", json=payload)
     assert response.status_code == status.HTTP_200_OK
 
@@ -54,7 +54,7 @@ def test_predict_endpoint_high_churn(mock_predict: object) -> None:
 
 @patch("src.api.main.predict_single", return_value=0.15)
 def test_predict_endpoint_low_churn(mock_predict: object) -> None:
-    payload = _base_payload()
+    payload = base_payload()
     payload["tenure"] = 15
     payload["Contract"] = "One year"
     response = client.post("/predict", json=payload)
@@ -78,7 +78,7 @@ def test_predict_endpoint_validation_error() -> None:
 
 @patch("src.api.main.predict_single", return_value=0.6)
 def test_predict_endpoint_with_total_charges(mock_predict: object) -> None:
-    payload = _base_payload()
+    payload = base_payload()
     payload["TotalCharges"] = 100.0
     response = client.post("/predict", json=payload)
     assert response.status_code == status.HTTP_200_OK

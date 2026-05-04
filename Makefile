@@ -1,7 +1,7 @@
 # Makefile para o TechChallenge Fase 1
 # Comandos essenciais para desenvolvimento
 
-.PHONY: setup test lint format help docker-up docker-down api-up api-down api-test train train-dummy train-mlp train-logistic compare-models analyze tune-mlp recover-model
+.PHONY: setup test lint format help docker-up docker-down api-up api-down api-test api-load api-load-watch train train-dummy train-mlp train-logistic compare-models analyze tune-mlp recover-model
 
 # Verifica se o arquivo .env existe
 CHECK_ENV := $(shell test -f .env && echo 1 || echo 0)
@@ -22,6 +22,8 @@ help:
 	@echo "  make api-up     - Iniciar API FastAPI + Prometheus + Grafana em background"
 	@echo "  make api-down   - Parar containers da API, Prometheus e Grafana"
 	@echo "  make api-test   - Testar endpoint de predição via cURL"
+	@echo "  make api-load   - Teste de carga batch (default: 50 reqs)"
+	@echo "  make api-load-watch - Carga continua ate Ctrl+C (default: 5 req/s)"
 	@echo ""
 	@echo "Desenvolvimento:"
 	@echo "  make test       - Rodar testes"
@@ -164,6 +166,17 @@ api-test:
 	     -H "Content-Type: application/json" \
 	     -d '{"customerID":"7590-VHVEG","gender":"Female","SeniorCitizen":0,"Partner":"Yes","Dependents":"No","tenure":1,"PhoneService":"No","MultipleLines":"No phone service","InternetService":"DSL","OnlineSecurity":"No","OnlineBackup":"Yes","DeviceProtection":"No","TechSupport":"No","StreamingTV":"No","StreamingMovies":"No","Contract":"Month-to-month","PaperlessBilling":"Yes","PaymentMethod":"Electronic check","MonthlyCharges":29.85}'
 	@echo "\nTeste concluido!"
+
+# Teste de carga batch (envia N requisicoes e gera relatorio)
+api-load:
+	@echo "Teste de carga batch..."
+	uv run python -m src.pipelines.explore_metrics --requests $${REQUESTS:-100}
+	@echo "Carga concluida!"
+
+# Teste de carga continua (envia requisicoes ate Ctrl+C)
+api-load-watch:
+	@echo "Carga continua (Ctrl+C para parar)..."
+	uv run python -m src.pipelines.explore_metrics --watch --rate $${RATE:-5}
 
 # Tuning de hiperparametros do MLP com Optuna
 tune-mlp:

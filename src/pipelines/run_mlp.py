@@ -21,6 +21,7 @@ Requerimentos:
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import os
 from pathlib import Path
@@ -460,6 +461,14 @@ def main() -> None:  # noqa: PLR0914, PLR0915
         mlflow.log_dict(
             build_model_card("mlp", **mlp_card_values), "model_card.json"
         )
+        # Salva feature names para inferencia
+        feature_names_path = Path("models/feature_names.json")
+        with open(feature_names_path, "w", encoding="utf-8") as f:
+            json.dump(feature_names, f, ensure_ascii=False)
+        mlflow.log_artifact(
+            str(feature_names_path), artifact_path="preprocessing"
+        )
+        logger.info(f"Feature names salvos em {feature_names_path}")
 
         logger.info(f"Modelo salvo em {model_save_path}")
 

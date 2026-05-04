@@ -8,6 +8,7 @@ from fastapi import status
 from fastapi.testclient import TestClient
 
 from src.api.main import app
+from src.api.metrics import DRIFT_PSI_GAUGE
 
 client = TestClient(app)
 
@@ -75,3 +76,13 @@ def test_prediction_probability_histogram_populated(
     assert "prediction_probability_bucket" in response.text
     assert 'le="0.9"' in response.text
     assert "prediction_probability_count" in response.text
+
+
+def test_drift_psi_gauge_present() -> None:
+    """O gauge drift_psi_score deve aparecer nas metricas expostas."""
+    DRIFT_PSI_GAUGE.labels(feature="tenure").set(0.05)
+
+    response = client.get("/metrics")
+    assert response.status_code == status.HTTP_200_OK
+    assert "drift_psi_score" in response.text
+    assert 'feature="tenure"' in response.text

@@ -29,26 +29,28 @@ DEFAULT_FEATURE_NAMES_PATH = Path("models/feature_names.json")
 # Categorias na ordem de aparecimento do dataset de treino.
 # Usadas para garantir colunas dummy consistentes na inferencia.
 _CATEGORICAL_COLUMNS: dict[str, list[str]] = {
-    "gender": ["Female", "Male"],
-    "Partner": ["Yes", "No"],
-    "Dependents": ["No", "Yes"],
-    "PhoneService": ["No", "Yes"],
-    "MultipleLines": ["No phone service", "No", "Yes"],
-    "InternetService": ["DSL", "Fiber optic", "No"],
-    "OnlineSecurity": ["No", "Yes", "No internet service"],
-    "OnlineBackup": ["Yes", "No", "No internet service"],
-    "DeviceProtection": ["No", "Yes", "No internet service"],
-    "TechSupport": ["No", "Yes", "No internet service"],
-    "StreamingTV": ["No", "Yes", "No internet service"],
-    "StreamingMovies": ["No", "Yes", "No internet service"],
-    "Contract": ["Month-to-month", "One year", "Two year"],
-    "PaperlessBilling": ["Yes", "No"],
-    "PaymentMethod": [
-        "Electronic check",
-        "Mailed check",
-        "Bank transfer (automatic)",
-        "Credit card (automatic)",
-    ],
+    "gender": sorted(["Female", "Male"]),
+    "Partner": sorted(["Yes", "No"]),
+    "Dependents": sorted(["No", "Yes"]),
+    "PhoneService": sorted(["No", "Yes"]),
+    "MultipleLines": sorted(["No phone service", "No", "Yes"]),
+    "InternetService": sorted(["DSL", "Fiber optic", "No"]),
+    "OnlineSecurity": sorted(["No", "Yes", "No internet service"]),
+    "OnlineBackup": sorted(["Yes", "No", "No internet service"]),
+    "DeviceProtection": sorted(["No", "Yes", "No internet service"]),
+    "TechSupport": sorted(["No", "Yes", "No internet service"]),
+    "StreamingTV": sorted(["No", "Yes", "No internet service"]),
+    "StreamingMovies": sorted(["No", "Yes", "No internet service"]),
+    "Contract": sorted(["Month-to-month", "One year", "Two year"]),
+    "PaperlessBilling": sorted(["Yes", "No"]),
+    "PaymentMethod": sorted(
+        [
+            "Electronic check",
+            "Mailed check",
+            "Bank transfer (automatic)",
+            "Credit card (automatic)",
+        ]
+    ),
 }
 
 
