@@ -160,10 +160,11 @@ def main(argv: list[str] | None = None) -> int:
         for k, v in result["metrics"].items():
             mlflow.log_metric(f"test_{k}", v)
 
-        pipeline = result["model"]
         try:
             encoded_names = list(
-                pipeline.named_steps["preprocessor"].get_feature_names_out()
+                result["model"]
+                .named_steps["preprocessor"]
+                .get_feature_names_out()
             )
         except (AttributeError, KeyError):
             encoded_names = prepared.feature_names
@@ -171,8 +172,7 @@ def main(argv: list[str] | None = None) -> int:
         mlflow.log_param("encoded_features", len(encoded_names))
 
         try:
-            classifier = pipeline.named_steps["classifier"]
-            coefs = classifier.coef_[0]
+            coefs = result["model"].named_steps["classifier"].coef_[0]
         except (AttributeError, KeyError):
             coefs = np.zeros(len(encoded_names))
 
