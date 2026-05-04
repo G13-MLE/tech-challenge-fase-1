@@ -32,12 +32,14 @@ tech-challenge-fase-1/
 └── docs/           # Documentação complementar
 ```
 
-### Documentação de arquitetura e operação
+### Documentacao de arquitetura e operacao
 
 - [Arquitetura de Deploy](docs/ARQUITETURA_DE_DEPLOY.md):
-  componentes, fluxo de inferência, opções de cloud e CI/CD.
+  componentes, middlewares, stack de monitoramento, opcoes de cloud e
+  CI/CD.
 - [Plano de Monitoramento](docs/MONITORAMENTO.md):
-  métricas, thresholds, alertas e ferramentas de observabilidade.
+  metricas, thresholds, alertas, dashboards Grafana, deteccao de drift
+  e playbook de incidentes.
 
 ## Dataset base — Telco Customer Churn (IBM)
 
@@ -46,7 +48,7 @@ tech-challenge-fase-1/
 - Integridade (SHA256):
   `88be4b93fbe0cc83421af1c503794c97c342eca914c1576db7c276e61d61358a`
 - Dicionário de dados:
-  `docs/telco_customer_churn_data_dictionary.md`
+  `docs/DICIONARIO_DE_DADOS.md`
 
 Fonte e referência pública:
 
@@ -238,9 +240,22 @@ uv run python -m src.pipelines.train_mlp \
 Para testar e desenvolver a API localmente com hot-reload, utilize os seguintes comandos:
 
 ```bash
-make api-up       # Sobe o container da API (acessível em http://localhost:8000/docs)
+make api-up       # Sobe a API + Prometheus + Grafana (API em http://localhost:8000/docs)
 make api-test     # Envia um payload de teste para o endpoint /predict via cURL
-make api-down     # Para o container da API
+make api-down     # Para todos os containers (API, Prometheus, Grafana)
+```
+
+### Monitoramento (Prometheus + Grafana)
+
+A stack de monitoramento sobe automaticamente com `make api-up`:
+
+- **API**: http://localhost:8000 — endpoints `/health`, `/predict`, `/metrics`
+- **Prometheus**: http://localhost:9090 — scraping metricas a cada 15s
+- **Grafana**: http://localhost:3000 — dashboards pre-provisionados (login: admin/admin)
+
+Dashboards disponiveis:
+- *API Churn - Metricas Operacionais*: latencia, throughput, erros, predicoes
+- *API Churn - Data Drift*: deteccoes de drift, PSI por feature, distribuicao de probabilidades
 ```
 
 ### Desenvolvimento
@@ -260,6 +275,8 @@ make help         # Mostrar todos os comandos disponíveis
 ### Acessar
 
 - MLflow UI: http://localhost:5000
+- Grafana: http://localhost:3000 (admin/admin)
+- Prometheus: http://localhost:9090
 
 ## EDA Interativo (Marimo)
 

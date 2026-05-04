@@ -4,8 +4,8 @@
 
 Este documento descreve a arquitetura de deploy do pipeline de predicao de
 churn para clientes de telecomunicacoes. O sistema utiliza um modelo MLP
-treinado com PyTorch, exposto via API REST com FastAPI, e orquestrado com
-Docker Compose.
+treinado com PyTorch, exposto via API REST com FastAPI, com monitoramento
+integrado via Prometheus + Grafana, e orquestrado com Docker Compose.
 
 O objetivo e garantir a reproducibilidade do ambiente, facilitar implantacoes
 futuras em cloud e documentar as decisoes tecnicas tomadas pelo time.
@@ -19,21 +19,70 @@ Links relacionados:
 
 - **Endpoint GET `/health`**: saude da API.
 - **Endpoint POST `/predict`**: recebe dados do cliente e retorna a
-  probabilidade de churn e a predicao binaria.
+  probabilidade de churn e a predicao binaria, processada pelo modelo MLP
+  real via `ChurnPredictor`.
+- **Endpoint GET `/metrics`**: expoe metricas no formato Prometheus para
+  scraping por agentes de monitoramento.
 - **Validacao Pydantic**: `PredictRequest` e `PredictResponse`
   (`src/api/schemas.py`) com `strict=True` e `extra="forbid"`.
-- **Status atual**: logica mock baseada no campo `tenure`
-  (TODO: integrar modelo MLP real e scaler).
+- **Modelo real**: inferencia realizada pelo `ChurnPredictor`
+  (`src/api/inference.py`) que carrega o modelo MLP, scaler e feature names
+  de forma lazy (singleton).
 
 ### 2.2 Modelo MLP (`src/training/mlp/model.py`)
 
 - **Arquitetura**: 128 -> 64 -> 32 com BatchNorm e Dropout (0.3).
 - **Checkpoint**: `models/churn_mlp_best.pt` (rastreado via DVC).
-- **Preprocessamento**: `models/scaler.pkl` (StandardScaler, rastreado via DVC).
+- **Preprocessamento**: `models/scaler.pkl` (StandardScaler, rastreado via DVC)
+  e `models/feature_names.json` (lista ordenada de features do treino).
 - **Treinamento**: PyTorch com early stopping e learning rate scheduling
   (`src/training/mlp/trainer.py`).
+- **Inferencia**: `ChurnPredictor` carrega modelo, scaler e feature names
+  sob demanda (lazy loading), preprocessa one-hot encoding com categorias
+  fixas e aplica StandardScaler.
 
-### 2.3 MLflow Tracking Server (`docker/docker-compose.yml`)
+### 2.3 Middlewares (`src/api/middleware/`)
+
+Stack de middlewares ASGI que intercepta requisicoes antes e depois do
+endpoint:
+
+- **RequestIDMiddleware** (`request_id.py`): gera ou propaga `X-Request-ID`
+  em cada requisicao. Suporta tracing distribu ido e injeta o ID nos logs
+  via `ContextVar`.
+- **LatencyMiddleware** (`latency.py`): mede latencia wall-clock de cada
+  requisicao, registra metricas Prometheus
+  (`http_requests_total`, `http_request_duration_seconds`) e emite WARNING
+  quando o SLO (default: 500ms) e violado.
+- **DriftMiddleware** (`drift.py`): intercepta requisicoes `POST /predict`,
+  detecta data drift per-request (out-of-range para numericas, categorias
+  ineditas para categoricas) e acumula janelas de PSI para features
+  numericas. Registra metricas `drift_detections_total` e
+  `drift_psi_score` no Prometheus.
+
+Ordem de registro (LIFO no FastAPI, ultimo registrado executa primeiro na
+entrada):
+1. DriftMiddleware (ultimo registrado = primeiro na entrada)
+2. RequestIDMiddleware
+3. LatencyMiddleware
+
+### 2.4 Stack de Monitoramento (`docker/docker-compose.api.yml`)
+
+O ambiente de desenvolvimento inclui Prometheus e Grafana alongside a API:
+
+- **Prometheus** (`prom/prometheus:v3.2.0`): scraping do endpoint `/metrics`
+  da API a cada 15s. Dados armazenados por 15 dias.
+- **Grafana** (`grafana/grafana:11.6.1`): dashboards pre-provisionados para
+  metricas operacionais e monitoramento de drift.
+  - Dashboard "API Churn - Metricas Operacionais": requisicoes totais, taxa
+    de erros 5xx, latencia p99, distribuicao de probabilidades de churn,
+    distribuicao de status HTTP.
+  - Dashboard "API Churn - Data Drift": deteccoes de drift, taxa de drift,
+    drift por feature, histograma de probabilidades, status OK/DRIFT,
+    PSI por feature.
+- **Provisionamento automatico**: datasources e dashboards sao carregados
+  via arquivos YAML/JSON em `docker/grafana/provisioning/`.
+
+### 2.5 MLflow Tracking Server (`docker/docker-compose.yml`)
 
 - **PostgreSQL**: backend store para metadados de experimentos.
 - **MinIO**: artifact store compativel com S3 para modelos e artefatos.
@@ -41,15 +90,33 @@ Links relacionados:
 - **Setup automatico**: container `minio-setup` cria o bucket no primeiro
   start.
 
-### 2.4 Containerizacao (`docker/`)
+### 2.6 Containerizacao (`docker/`)
 
 - **`Dockerfile.api`**: imagem base `ghcr.io/astral-sh/uv:python3.12-bookworm-slim`,
   gerenciamento de dependencias via `uv sync --frozen`.
-- **`docker-compose.api.yml`**: ambiente de desenvolvimento com hot-reload,
-  mapeamento de volume para `src/api/`.
+- **`docker-compose.api.yml`**: stack completa de desenvolvimento com:
+  - API com hot-reload (volume `src/` mapeado).
+  - Prometheus scraping a cada 15s.
+  - Grafana com dashboards pre-provisionados.
+  - Portas: API (8000), Prometheus (9090), Grafana (3000).
 - **`Dockerfile.mlflow`**: imagem customizada com `psycopg2-binary` e `boto3`.
 - **`docker-compose.yml`**: stack completa do MLflow (postgres, minio,
   mlflow-server, minio-setup).
+
+### 2.7 Modulos Auxiliares
+
+- **`src/api/metrics.py`**: definicao das metricas Prometheus:
+  `http_requests_total`, `http_request_duration_seconds`,
+  `prediction_probability`, `drift_detections_total`, `drift_psi_score`.
+- **`src/api/logging.py`**: logging estruturado JSON com `ContextVar` para
+  request ID. Suporta formato texto para desenvolvimento local.
+- **`src/api/drift.py`**: deteccao per-request de data drift (range check
+  para features numericas, categoria inedita para features categoricas).
+- **`src/api/drift_monitor.py`**: monitoramento de drift por janela
+  (buffer circular de 200 amostras) com calculo de PSI real contra
+  baseline de treino.
+- **`src/api/monitoring/load_tester.py`**: ferramenta de carga para testes
+  de performance, com consulta de metricas ao Prometheus via PromQL.
 
 ## 3. Estrategia de Inferencia
 
@@ -64,18 +131,22 @@ que precisam de resposta imediata.
   `PredictRequest`).
 - **Formato de saida**: JSON com probabilidade e predicao binaria
   (`PredictResponse`).
+- **Pipeline completo**: recebimento -> validacao Pydantic -> deteccao de
+  drift (DriftMiddleware) -> preprocessamento (one-hot + scaler) -> forward
+  pass MLP -> resposta JSON. Cada etapa e monitorada via middleware e metricas
+  Prometheus.
 
 ### 3.2 Batch (Alternativa)
 
 Para processamento de grandes volumes de clientes de uma so vez (ex:
-  relatorio semanal de risco de churn), a abordagem batch e mais
-  eficiente.
+relatorio semanal de risco de churn), a abordagem batch e mais eficiente.
 
-- **Implementação**: pipeline agendado (cron ou Airflow), leitura de CSV,
-  aplicação do modelo em lote via `src/pipelines/run_mlp.py`.
+- **Implementacao**: pipeline agendado (cron ou Airflow), leitura de CSV,
+  aplicacao do modelo em lote via `src/pipelines/train_mlp.py`
+  (adaptado para inferencia).
 - **Vantagens**: menor custo computacional, melhor aproveitamento do
   hardware.
-- **Migração futura**: adicionar endpoint `POST /batch` ou script
+- **Migracao futura**: adicionar endpoint `POST /batch` ou script
   standalone para processamento noturno.
 
 ### 3.3 Comparativo
@@ -134,9 +205,9 @@ para manter a simplicidade.
 - Replicas do container da API gerenciadas pelo orquestrador (ECS, Kubernetes,
   Cloud Run).
 - Sem estado (stateless): cada request e independente, facilitando o balanceamento
-  de carga.
-- O modelo e artefatos (`.pt`, `.pkl`) podem ser montados em volume ou
-  carregados em memoria no startup.
+  de carga. O modelo e carregado uma unica vez em memoria (singleton).
+- Artefatos (`.pt`, `.pkl`, `.json`) sao montados em volume ou copiados para
+  a imagem Docker.
 
 ### 5.2 Vertical
 
@@ -170,12 +241,25 @@ Stages na pipeline:
 
 - **Staging**: imagem e deployada em ambiente de homologacao (Cloud Run ou
   ECS staging).
-- **Smoke test**: health check (`GET /health`) e teste de predicacao
-  (`POST /predict`) no ambiente de staging.
+- **Smoke test**: health check (`GET /health`), predicao (`POST /predict`)
+  e verificacao de metricas (`GET /metrics`) no ambiente de staging.
 - **Promocao para producao**: merge na branch `main` dispara deploy
   automatico.
 - **Rollback**: em caso de falha no health check, reverter para imagem
   anterior via tag Docker.
+
+### 6.3 Testes de Carga
+
+A ferramenta `src/api/monitoring/load_tester.py` permite testes de carga
+na API com relatorio de metricas coletado do Prometheus:
+
+```bash
+# Teste discreto (100 requisicoes)
+uv run python -m src.api.monitoring.load_tester --requests 100
+
+# Teste continuo (~5 req/s)
+uv run python -m src.api.monitoring.load_tester --continuous --rate 5
+```
 
 ## 7. Diagramas de Arquitetura
 
@@ -188,8 +272,17 @@ graph TB
     end
     subgraph "Container API"
         FastAPI[FastAPI<br/>src/api/main.py]
-        Pydantic[Pydantic<br/>src/api/schemas.py]
-        ModelLoader[Carregador de Modelo<br/>TODO: integrar MLP]
+        Pydantic[Pydantic Schemas<br/>src/api/schemas.py]
+        Predictor[ChurnPredictor<br/>src/api/inference.py]
+    end
+    subgraph "Middlewares"
+        ReqID[RequestIDMiddleware]
+        LatencyMW[LatencyMiddleware<br/>+ Prometheus Metrics]
+        DriftMW[DriftMiddleware<br/>+ PSI Monitor]
+    end
+    subgraph "Stack de Monitoramento"
+        Prometheus[Prometheus Server<br/>:9090]
+        Grafana[Grafana<br/>:3000]
     end
     subgraph "Stack MLflow"
         MLflowServer[MLflow Tracking Server]
@@ -199,12 +292,19 @@ graph TB
     subgraph "Artefatos (DVC)"
         ModelPT[models/churn_mlp_best.pt]
         ScalerPKL[models/scaler.pkl]
+        FeaturesJSON[models/feature_names.json]
     end
-    Client -->|POST /predict| FastAPI
+    Client -->|POST /predict| DriftMW
+    DriftMW --> LatencyMW
+    LatencyMW --> ReqID
+    ReqID --> FastAPI
     FastAPI --> Pydantic
-    FastAPI --> ModelLoader
-    ModelLoader --> ModelPT
-    ModelLoader --> ScalerPKL
+    FastAPI --> Predictor
+    Predictor --> ModelPT
+    Predictor --> ScalerPKL
+    Predictor --> FeaturesJSON
+    FastAPI -->|GET /metrics| Prometheus
+    Prometheus --> Grafana
     MLflowServer --> Postgres
     MLflowServer --> MinIO
 ```
@@ -214,13 +314,24 @@ graph TB
 ```mermaid
 sequenceDiagram
     participant C as Cliente
+    participant DMW as DriftMiddleware
+    participant LMW as LatencyMiddleware
+    participant RID as RequestIDMiddleware
     participant API as FastAPI
     participant V as Pydantic Validation
     participant P as Preprocessamento
     participant M as MLP Modelo
     participant R as PredictResponse
+    participant PR as Prometheus
 
-    C->>API: POST /predict
+    C->>DMW: POST /predict (JSON)
+    DMW->>DMW: Detectar drift per-request
+    DMW->>DMW: Alimentar janela PSI
+    DMW->>LMW: Request + body reconstruido
+    LMW->>LMW: Iniciar contagem de tempo
+    LMW->>RID: Request
+    RID->>RID: Gerar/propagar X-Request-ID
+    RID->>API: Request processado
     API->>V: Validar PredictRequest
     V-->>API: Dados validados
     API->>P: Aplicar scaler + one-hot encode
@@ -228,7 +339,11 @@ sequenceDiagram
     API->>M: Forward pass
     M-->>API: Probabilidade + predicao
     API->>R: Construir PredictResponse
-    R-->>C: JSON {churn_probability, churn_prediction}
+    R-->>LMW: Response JSON
+    LMW->>LMW: Calcular latencia + registrar metricas
+    LMW->>PR: http_requests_total, http_request_duration_seconds
+    LMW-->>C: JSON {churn_probability, churn_prediction}
+    Note over DMW,PR: DriftMiddleware registra drift_detections_total e drift_psi_score
 ```
 
 ### 7.3 Diagrama de Pipeline CI/CD
@@ -249,8 +364,31 @@ sequenceDiagram
     CI->>Reg: Push imagem com tag
     CI->>Deploy: Deploy nova versao
     Deploy->>Deploy: Health check GET /health
+    Deploy->>Deploy: Smoke test POST /predict
+    Deploy->>Deploy: Verificar GET /metrics
     Deploy-->>CI: Status OK
     CI-->>GH: Pipeline passed
+```
+
+### 7.4 Diagrama do Stack Docker Compose
+
+```mermaid
+graph TB
+    subgraph "docker-compose.api.yml"
+        API[API FastAPI<br/>:8000]
+        Prom[Prometheus<br/>:9090]
+        Graf[Grafana<br/>:3000]
+    end
+    subgraph "docker-compose.yml"
+        MLflow[MLflow Server<br/>:5000]
+        PG[(PostgreSQL<br/>:5432)]
+        MinIO[(MinIO<br/>:9000/:9001)]
+    end
+    API -->|/metrics| Prom
+    Prom --> Graf
+    API --> MLflow
+    MLflow --> PG
+    MLflow --> MinIO
 ```
 
 ## 8. Variaveis de Ambiente
@@ -268,15 +406,21 @@ producao sao:
 | `POSTGRES_PASSWORD` | Senha do PostgreSQL | `mlflow_secure_password_2024` |
 | `MLFLOW_PORT` | Porta do MLflow Server | `5000` |
 | `MLFLOW_WORKERS` | Workers do Gunicorn | `2` |
+| `API_PORT` | Porta da API FastAPI | `8000` |
+| `LOG_LEVEL` | Nivel de log (DEBUG, INFO, WARNING, ERROR) | `INFO` |
+| `LOG_FORMAT` | Formato de log (json ou text) | `json` |
+| `PREDICTION_SLO_MS` | Limiar de latencia SLO em ms | `500.0` |
+| `GRAFANA_ADMIN_USER` | Usuario admin do Grafana | `admin` |
+| `GRAFANA_ADMIN_PASSWORD` | Senha admin do Grafana | `admin` |
 
 ## 9. Limitacoes Atuais
 
-- O endpoint `/predict` utiliza logica mock (`tenure` < 12 => 85% churn).
-  Integracao com o modelo MLP real e pendente (proxima sprint).
-- A API nao possui autenticação (bearer token ou API key).
+- A API nao possui autenticacao (bearer token ou API key).
 - Nao ha rate limiting implementado.
 - MLflow e MinIO estao com credenciais padrao (`minioadmin`), inadequadas
   para producao.
 - Nao ha TLS/HTTPS configurado na API ou no MLflow.
-- O monitoramento em tempo real depende de infraestrutura adicional
-  (Prometheus/Grafana).
+- O Grafana esta com credenciais padrao (`admin/admin`), inadequadas para
+  producao.
+- Retreinamento automatico nao esta implementado (apenas manual via
+  `make train-mlp`).
