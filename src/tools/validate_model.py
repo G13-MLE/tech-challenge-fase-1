@@ -1,11 +1,11 @@
-"""Validacao periodica do modelo MLP contra baseline do MLflow.
+"""Validação periódica do modelo MLP contra baseline do MLflow.
 
-Script de validacao que re-avalia o modelo MLP atual no conjunto
-de teste e compara as metricas com os baselines registrados no
-MLflow. Projetado para execucao semanal (cron/scheduler) conforme
-o plano de monitoramento (docs/MONITORAMENTO.md Secao 2.3).
+Script de validação que re-avalia o modelo MLP atual no conjunto
+de teste e compara as métricas com os baselines registrados no
+MLflow. Projetado para execução semanal (cron/scheduler) conforme
+o plano de monitoramento (docs/MONITORAMENTO.md Seção 2.3).
 
-Criterios de validacao:
+Critérios de validação:
 - AUC-ROC >= 0.78 (Warning se < 0.78, Critical se < 0.72)
 - F1-Score >= 0.55 (Warning se < 0.55, Critical se < 0.50)
 
@@ -39,7 +39,7 @@ DEFAULT_MODEL_PATH = Path("models/churn_mlp_best.pt")
 DEFAULT_SCALER_PATH = Path("models/scaler.pkl")
 DEFAULT_FEATURE_NAMES_PATH = Path("models/feature_names.json")
 
-# Thresholds conforme MONITORAMENTO.md Secao 3.2
+# Thresholds conforme MONITORAMENTO.md Seção 3.2
 _DEFAULT_ROC_WARNING = 0.78
 _DEFAULT_ROC_CRITICAL = 0.72
 _DEFAULT_F1_WARNING = 0.55
@@ -50,12 +50,12 @@ _THRESHOLD = 0.5
 def _parse_args() -> argparse.Namespace:
     """Parse dos argumentos da linha de comando."""
     parser = argparse.ArgumentParser(
-        description="Validacao periodica do modelo MLP de churn."
+        description="Validação periódica do modelo MLP de churn."
     )
     parser.add_argument(
         "--dataset-path",
         default="data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv",
-        help="Caminho para o dataset de validacao",
+        help="Caminho para o dataset de validação",
     )
     parser.add_argument(
         "--model-path",
@@ -99,7 +99,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output",
         default="reports/model_validation.json",
-        help="Caminho para salvar o resultado da validacao",
+        help="Caminho para salvar o resultado da validação",
     )
     return parser.parse_args()
 
@@ -112,7 +112,7 @@ def _evaluate_model_on_test_set(
     """Avalia o modelo no conjunto de teste usando ChurnPredictor.
 
     Para cada amostra, usa o predictor para obter a probabilidade
-    de churn e computa as metricas de classificacao binaria.
+    de churn     e computa as métricas de classificação binária.
 
     Args:
         predictor: ChurnPredictor carregado com modelo e scaler.
@@ -120,7 +120,7 @@ def _evaluate_model_on_test_set(
         y_test: Labels do conjunto de teste.
 
     Returns:
-        Dicionario com as metricas computadas.
+        Dicionário com as métricas computadas.
     """
     y_proba_list: list[float] = []
     y_pred_list: list[int] = []
@@ -141,7 +141,7 @@ def _evaluate_model_on_test_set(
     y_proba = np.array(y_proba_list)
     y_pred = np.array(y_pred_list)
 
-    # Converte y_test para binario
+    # Converte y_test para binário
     if y_test.dtype == object or isinstance(y_test.iloc[0], str):
         y_true_values = y_test.values
         if isinstance(y_true_values, np.ndarray):
@@ -168,7 +168,7 @@ def _classify_severity(
     """Classifica a severidade com base nos thresholds.
 
     Args:
-        metrics: Metricas computadas.
+        metrics: Métricas computadas.
         roc_warning: Threshold AUC-ROC para warning.
         roc_critical: Threshold AUC-ROC para critical.
         f1_warning: Threshold F1-Score para warning.
@@ -188,18 +188,18 @@ def _classify_severity(
 
 
 def validate_model(args: argparse.Namespace) -> dict[str, Any]:
-    """Executa a validacao periodica do modelo.
+    """Executa a validação periódica do modelo.
 
     Args:
         args: Argumentos da linha de comando.
 
     Returns:
-        Dicionario com resultado completo da validacao.
+        Dicionário com resultado completo da validação.
     """
     load_dotenv_silent()
     setup_logging()
 
-    logger.info("Iniciando validacao periodica do modelo...")
+    logger.info("Iniciando validação periódica do modelo...")
 
     # Verifica se artefatos existem
     for path, label in [
@@ -209,7 +209,7 @@ def validate_model(args: argparse.Namespace) -> dict[str, Any]:
     ]:
         if not Path(path).exists():
             msg = (
-                f"{label} nao encontrado: {path}. "
+                f"{label} não encontrado: {path}. "
                 "Execute 'dvc pull' para baixar os artefatos."
             )
             logger.error(msg)
@@ -223,7 +223,7 @@ def validate_model(args: argparse.Namespace) -> dict[str, Any]:
     if "Churn" in df.columns:
         df_split = df.copy()
     else:
-        msg = "Coluna 'Churn' nao encontrada no dataset"
+        msg = "Coluna 'Churn' não encontrada no dataset"
         logger.error(msg)
         return {"status": "ERROR", "message": msg}
 
@@ -279,7 +279,7 @@ def validate_model(args: argparse.Namespace) -> dict[str, Any]:
 
     if severity == "OK":
         logger.info(
-            "[OK] Validacao passou. ROC-AUC=%.4f (>= %.2f), F1=%.4f (>= %.2f)",
+            "[OK] Validação passou. ROC-AUC=%.4f (>= %.2f), F1=%.4f (>= %.2f)",
             roc_auc,
             args.threshold_roc_warning,
             f1,
@@ -287,14 +287,14 @@ def validate_model(args: argparse.Namespace) -> dict[str, Any]:
         )
     elif severity == "WARNING":
         logger.warning(
-            "[WARN] Validacao com alerta. ROC-AUC=%.4f, F1=%.4f. "
-            "Agenlar retreino.",
+            "[WARN] Validação com alerta. ROC-AUC=%.4f, F1=%.4f. "
+            "Agendar retreino.",
             roc_auc,
             f1,
         )
     else:
         logger.error(
-            "[CRITICAL] Validacao falhou. ROC-AUC=%.4f (< %.2f), "
+            "[CRITICAL] Validação falhou. ROC-AUC=%.4f (< %.2f), "
             "F1=%.4f (< %.2f). Retreino imediato recomendado.",
             roc_auc,
             args.threshold_roc_critical,
@@ -307,7 +307,7 @@ def validate_model(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def main() -> None:
-    """Entry point para execucao via linha de comando."""
+    """Entry point para execução via linha de comando."""
     args = _parse_args()
     result = validate_model(args)
     severity = result.get("status", "ERROR")
