@@ -1,6 +1,6 @@
-"""Modulo para treinar um modelo de Logistic Regression.
+"""Módulo para treinar um modelo de Logistic Regression.
 
-Fornece funcoes para treinar e avaliar o modelo de
+Fornece funções para treinar e avaliar o modelo de
 Logistic Regression com tracking no MLflow.
 Utiliza sklearn Pipeline para reprodutibilidade.
 """
@@ -21,7 +21,7 @@ from src.training.metrics import compute_binary_classification_metrics
 
 @dataclass(frozen=True)
 class LogisticTrainingConfig:
-    """Configuracao para treino do LogisticRegression."""
+    """Configuração para treino do LogisticRegression."""
 
     max_iter: int = 1000
     random_seed: int = RANDOM_SEED
@@ -36,8 +36,8 @@ def train_logistic_classifier(
 ) -> dict[str, Any]:
     """Treina pipeline sklearn com Logistic Regression e avalia desempenho.
 
-    Constroi um pipeline com pre-processamento completo:
-    imputacao, encoding, scaling, SMOTE e classificador.
+    Constrói um pipeline com pré-processamento completo:
+    imputação, encoding, scaling, SMOTE e classificador.
     """
 
     pipeline = build_logistic_pipeline(
@@ -61,7 +61,7 @@ def cross_validate_logistic(
 ) -> dict[str, float]:
     """Realiza cross-validation com Logistic Regression via sklearn Pipeline.
 
-    Constroi um pipeline novo por fold para evitar data leakage.
+    Constrói um pipeline novo por fold para evitar data leakage.
     O pipeline gerencia internamente scaling e SMOTE dentro de cada fold.
     """
 
@@ -87,21 +87,18 @@ def cross_validate_logistic(
         )
         cv_results.append(metrics)
 
-    return {
-        "cv_accuracy_mean": float(
-            np.mean([r["accuracy"] for r in cv_results])
-        ),
-        "cv_accuracy_std": float(np.std([r["accuracy"] for r in cv_results])),
-        "cv_precision_mean": float(
-            np.mean([r["precision"] for r in cv_results])
-        ),
-        "cv_precision_std": float(
-            np.std([r["precision"] for r in cv_results])
-        ),
-        "cv_recall_mean": float(np.mean([r["recall"] for r in cv_results])),
-        "cv_recall_std": float(np.std([r["recall"] for r in cv_results])),
-        "cv_f1_mean": float(np.mean([r["f1_score"] for r in cv_results])),
-        "cv_f1_std": float(np.std([r["f1_score"] for r in cv_results])),
-        "cv_roc_auc_mean": float(np.mean([r["roc_auc"] for r in cv_results])),
-        "cv_roc_auc_std": float(np.std([r["roc_auc"] for r in cv_results])),
-    }
+    metric_keys = [
+        "accuracy",
+        "precision",
+        "recall",
+        "f1_score",
+        "roc_auc",
+        "pr_auc",
+        "brier_score",
+    ]
+    aggregated: dict[str, float] = {}
+    for key in metric_keys:
+        values = [r[key] for r in cv_results]
+        aggregated[f"cv_{key}_mean"] = float(np.mean(values))
+        aggregated[f"cv_{key}_std"] = float(np.std(values))
+    return aggregated

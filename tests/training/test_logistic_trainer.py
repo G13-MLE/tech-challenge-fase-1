@@ -25,10 +25,14 @@ EXPECTED_CV_KEYS = {
     "cv_precision_std",
     "cv_recall_mean",
     "cv_recall_std",
-    "cv_f1_mean",
-    "cv_f1_std",
+    "cv_f1_score_mean",
+    "cv_f1_score_std",
     "cv_roc_auc_mean",
     "cv_roc_auc_std",
+    "cv_pr_auc_mean",
+    "cv_pr_auc_std",
+    "cv_brier_score_mean",
+    "cv_brier_score_std",
 }
 
 

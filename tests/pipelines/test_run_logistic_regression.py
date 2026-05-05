@@ -22,10 +22,14 @@ _CV_RESULTS = {
     "cv_precision_std": 0.05,
     "cv_recall_mean": 0.60,
     "cv_recall_std": 0.05,
-    "cv_f1_mean": 0.62,
-    "cv_f1_std": 0.05,
+    "cv_f1_score_mean": 0.62,
+    "cv_f1_score_std": 0.05,
     "cv_roc_auc_mean": 0.72,
     "cv_roc_auc_std": 0.05,
+    "cv_pr_auc_mean": 0.55,
+    "cv_pr_auc_std": 0.04,
+    "cv_brier_score_mean": 0.20,
+    "cv_brier_score_std": 0.03,
 }
 
 _TEST_METRICS = {

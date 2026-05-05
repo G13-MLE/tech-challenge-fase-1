@@ -27,6 +27,7 @@ from src.training.logistic_trainer import (
 )
 from src.training.metrics import compute_binary_classification_metrics
 from src.training.mlp import MLP, MLPForTraining, MLPTrainer
+from src.training.mlp.trainer import cross_validate_mlp
 from src.training.model_card import build_model_card
 
 __all__ = [
@@ -41,6 +42,7 @@ __all__ = [
     "build_threshold_comparison",
     "compute_binary_classification_metrics",
     "cross_validate_logistic",
+    "cross_validate_mlp",
     "generate_markdown_report",
     "plot_confusion_matrices",
     "plot_cost_comparison",

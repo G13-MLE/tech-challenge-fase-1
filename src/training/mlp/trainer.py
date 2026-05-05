@@ -17,12 +17,14 @@ from typing import Any
 import mlflow
 import numpy as np
 import torch
+from sklearn.model_selection import StratifiedKFold
 from torch.optim import SGD, Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 from torch.utils.data import DataLoader, TensorDataset
 
-from src.config.models import TrainingConfig
+from src.config.models import MLPConfig, TrainingConfig
 from src.constants import THRESHOLD
+from src.data.preprocessing import apply_scaling, fit_scaler
 from src.training.metrics import compute_binary_classification_metrics
 from src.training.mlp.checkpoint import save_best_model
 from src.training.mlp.early_stopping import EarlyStopping
@@ -355,3 +357,91 @@ class MLPTrainer:
         for key, values in self.history.items():
             for idx, value in enumerate(values):
                 mlflow.log_metric(key, value, step=idx)
+
+
+def cross_validate_mlp(  # noqa: PLR0914
+    X_train: np.ndarray,
+    y_train: np.ndarray,
+    mlp_config: MLPConfig,
+    training_config: TrainingConfig,
+    n_folds: int = 5,
+) -> dict[str, float]:
+    """Realiza cross-validation com MLP via StratifiedKFold.
+
+    Treina um modelo novo em cada fold, com scaling e
+    early stopping aplicados dentro de cada fold para
+    evitar data leakage. Retorna métricas agregadas
+    (média e desvio padrão) de cada fold.
+
+    Args:
+        X_train: Features de treino (numpy array, NÃO escaladas).
+            O scaling é feito internamente por fold.
+        y_train: Targets de treino (numpy array, float32/float64).
+        mlp_config: Configuração da arquitetura MLP.
+        training_config: Configuração de treinamento.
+        n_folds: Número de folds (default: 5).
+
+    Returns:
+        Dicionário com média e std de cada métrica por fold:
+        cv_accuracy_mean/std, cv_precision_mean/std, etc.
+    """
+    cv = StratifiedKFold(
+        n_splits=n_folds,
+        shuffle=True,
+        random_state=training_config.random_seed,
+    )
+    y_for_split = y_train.astype(int)
+    cv_results: list[dict[str, float]] = []
+
+    for train_idx, val_idx in cv.split(X_train, y_for_split):
+        X_tr, X_val = X_train[train_idx], X_train[val_idx]
+        y_tr, y_val = y_train[train_idx], y_train[val_idx]
+
+        # Scaling dentro do fold - evita data leakage
+        scaler = fit_scaler(X_tr)
+        X_tr_sc = apply_scaling(X_tr, scaler)
+        X_val_sc = apply_scaling(X_val, scaler)
+
+        # Cria modelo novo para cada fold (reset de pesos)
+        fold_model = MLPForTraining(mlp_config)
+        fold_trainer = MLPTrainer(fold_model, training_config)
+
+        # Treina com validação interna (early stopping)
+        fold_trainer.fit(
+            X_tr_sc, y_tr, model_save_path="models/cv_fold_tmp.pt"
+        )
+
+        # Avalia no fold de validação
+        fold_model.model.eval()
+        with torch.no_grad():
+            X_val_t = torch.tensor(X_val_sc, dtype=torch.float32).to(
+                fold_trainer.device
+            )
+            probs = fold_model(X_val_t)["probs"].cpu().numpy()
+            preds = (probs > THRESHOLD).astype(int)
+
+        cv_results.append(
+            compute_binary_classification_metrics(
+                y_true=y_val,
+                y_pred=preds,
+                y_proba_positive=probs,
+                positive_label=None,
+            )
+        )
+
+    # Agrega média e std de cada métrica
+    metric_keys = [
+        "accuracy",
+        "precision",
+        "recall",
+        "f1_score",
+        "roc_auc",
+        "pr_auc",
+        "brier_score",
+    ]
+    aggregated: dict[str, float] = {}
+    for key in metric_keys:
+        values = [r[key] for r in cv_results]
+        aggregated[f"cv_{key}_mean"] = float(np.mean(values))
+        aggregated[f"cv_{key}_std"] = float(np.std(values))
+    return aggregated

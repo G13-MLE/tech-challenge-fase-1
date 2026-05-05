@@ -2,10 +2,10 @@
 
 Este script orquestra o treinamento do modelo MLP para predição de churn:
 1. Carregamento dos dados brutos do dataset Telco Customer Churn
-2. Preprocessamento (codificacao, escalonamento SEM data leakage)
-3. Divisao treino/teste estratificada
-4. Configuracao e treino do modelo MLP
-5. Avaliacao no conjunto de teste
+2. Pré-processamento (codificação, escalonamento SEM data leakage)
+3. Divisão treino/teste estratificada
+4. Configuração e treino do modelo MLP
+5. Avaliação no conjunto de teste
 6. Logging de métricas e modelo no MLflow
 
 Como usar:
@@ -35,7 +35,7 @@ import torch
 from src.api.logging import setup_logging
 from src.config.models import MLPConfig, TrainingConfig
 
-# Limiar para converter probabilidades em predicoes binarias
+# Limiar para converter probabilidades em predições binárias
 from src.constants import (
     DEFAULT_DATASET_PATH,
     DEFAULT_MLP_EXPERIMENT_NAME,
@@ -60,7 +60,7 @@ from src.pipelines.common import (
     safe_get_dataset_version,
     set_global_seed,
 )
-from src.training import MLPForTraining, MLPTrainer
+from src.training import MLPForTraining, MLPTrainer, cross_validate_mlp
 from src.training.metrics import (
     analyze_threshold_tradeoff,
     compute_binary_classification_metrics,
@@ -92,9 +92,9 @@ def main() -> None:  # noqa: PLR0914, PLR0915
 
     Orquestra todo o fluxo de ML:
     1. Parse de argumentos da linha de comando
-    2. Carregamento e preprocessamento de dados
-    3. Configuracao do modelo e treinamento
-    4. Avaliacao no conjunto de teste
+    2. Carregamento e pré-processamento de dados
+    3. Configuração do modelo e treinamento
+    4. Avaliação no conjunto de teste
     5. Logging no MLflow
 
     Argumentos CLI:
@@ -148,11 +148,11 @@ def main() -> None:  # noqa: PLR0914, PLR0915
     logger.info(f"Carregando dados de {args.input}")
     df = load_telco_data(args.input)
 
-    # Validacao de dados
+    # Validação de dados
     validate_required_columns(df, TARGET_COLUMN)
 
-    # === 2. PREPROCESSAMENTO (SEM SCALING AINDA) ===
-    logger.info("Preprocessando dados (one-hot encoding)")
+    # === 2. PRÉ-PROCESSAMENTO (SEM SCALING AINDA) ===
+    logger.info("Pré-processando dados (one-hot encoding)")
     X, y, feature_names, _ = mlp_preprocess_data(df)
 
     # === 3. DIVISAO TREINO/TESTE ===
@@ -186,7 +186,7 @@ def main() -> None:  # noqa: PLR0914, PLR0915
 
     logger.info(f"Conjunto de treino: {X_train_scaled.shape[0]} amostras")
     logger.info(f"Conjunto de teste: {X_test_scaled.shape[0]} amostras")
-    logger.info(f"Numero de features: {X_train_scaled.shape[1]}")
+    logger.info(f"Número de features: {X_train_scaled.shape[1]}")
 
     # Prepara lineage de dados para MLflow
     train_test_data = TrainTestData(
@@ -206,7 +206,7 @@ def main() -> None:  # noqa: PLR0914, PLR0915
         dataset_source_path=args.input,
     )
 
-    # === 5. CONFIGURACAO DO MODELO ===
+    # === 5. CONFIGURAÇÃO DO MODELO ===
     mlp_config = MLPConfig(
         input_dim=X_train_scaled.shape[1],
         hidden_dims=(128, 64, 32),
@@ -226,6 +226,21 @@ def main() -> None:  # noqa: PLR0914, PLR0915
         max_epochs=100,
         val_split=0.2,
         random_seed=RANDOM_SEED,
+    )
+
+    # === 5b. CROSS-VALIDATION ===
+    logger.info("Iniciando cross-validation (5 folds)")
+    cv_results = cross_validate_mlp(
+        X_train,
+        y_train_arr,
+        mlp_config,
+        training_config,
+        n_folds=5,
+    )
+    logger.info(
+        "CV accuracy: %.4f (+/- %.4f)",
+        cv_results["cv_accuracy_mean"],
+        cv_results["cv_accuracy_std"],
     )
 
     # === 6. TREINAMENTO COM MLFLOW ===
@@ -253,11 +268,16 @@ def main() -> None:  # noqa: PLR0914, PLR0915
             }
         )
 
-        # Log de preprocessamento
+        # Log de pré-processamento
         mlflow.log_param("preprocessing", "one_hot_encoding")
         mlflow.log_param("scaling", "StandardScaler")
         mlflow.log_param("scaling_fit_on", "train_only")
         mlflow.log_param("num_features", len(feature_names))
+        mlflow.log_param("cv_folds", 5)
+
+        # Log de métricas de cross-validation
+        for cv_k, cv_v in cv_results.items():
+            mlflow.log_metric(cv_k, cv_v)
 
         # Inicializa modelo e trainer
         model = MLPForTraining(mlp_config)
@@ -275,7 +295,7 @@ def main() -> None:  # noqa: PLR0914, PLR0915
 
         logger.info("Treinamento concluído")
 
-        # === 7. AVALIACAO NO CONJUNTO DE TESTE ===
+        # === 7. AVALIAÇÃO NO CONJUNTO DE TESTE ===
         model.model.eval()
         with torch.no_grad():
             X_test_tensor = torch.tensor(
@@ -291,13 +311,13 @@ def main() -> None:  # noqa: PLR0914, PLR0915
             y_proba_positive=probs,
             positive_label=None,
         )
-        logger.info(f"Metricas de teste: {test_metrics}")
+        logger.info(f"Métricas de teste: {test_metrics}")
 
-        # --- Metricas adicionais: calibracao e custo ---
+        # --- Métricas adicionais: calibração e custo ---
         calib_metrics = compute_calibration_metrics(
             y_true=y_test_arr, y_proba_positive=probs, n_bins=10
         )
-        logger.info(f"Metricas de calibracao: {calib_metrics}")
+        logger.info(f"Métricas de calibração: {calib_metrics}")
 
         # Custo estimado: FN = LTV perdido (500), FP = campanha (50)
         cm = compute_confusion_matrix(y_true=y_test_arr, y_pred=preds)
@@ -333,9 +353,9 @@ def main() -> None:  # noqa: PLR0914, PLR0915
             y_proba_positive=probs,
             thresholds=(0.30, 0.60),
         )
-        logger.info(f"Metricas por banda de risco: {risk_metrics}")
+        logger.info(f"Métricas por banda de risco: {risk_metrics}")
 
-        # Analise de threshold tradeoff
+        # Análise de threshold tradeoff
         threshold_df = analyze_threshold_tradeoff(
             y_true=y_test_arr,
             y_proba_positive=probs,
@@ -400,7 +420,7 @@ def main() -> None:  # noqa: PLR0914, PLR0915
         risk_df.to_csv(risk_csv_path, index=False)
         logger.info(f"Bandas de risco salvas em {risk_csv_path}")
 
-        # --- Registra metricas no MLflow ---
+        # --- Registra métricas no MLflow ---
         for metric_name, metric_value in test_metrics.items():
             mlflow.log_metric(f"test_{metric_name}", metric_value)
         for metric_name, metric_value in calib_metrics.items():
@@ -458,10 +478,11 @@ def main() -> None:  # noqa: PLR0914, PLR0915
         mlp_card_values["tp"] = cm["true_positives"]
         mlp_card_values.update(pk_metrics)  # type: ignore[arg-type]
         mlp_card_values.update(risk_metrics)  # type: ignore[arg-type]
+        mlp_card_values.update(cv_results)  # type: ignore[arg-type]
         mlflow.log_dict(
             build_model_card("mlp", **mlp_card_values), "model_card.json"
         )
-        # Salva feature names para inferencia
+        # Salva feature names para inferência
         feature_names_path = Path("models/feature_names.json")
         with open(feature_names_path, "w", encoding="utf-8") as f:
             json.dump(feature_names, f, ensure_ascii=False)
