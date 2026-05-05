@@ -10,7 +10,7 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 
 # Instala apenas as dependencias (otimiza o cache do Docker)
-RUN uv sync --frozen --no-install-project --no-dev
+RUN uv sync --frozen --no-install-project --no-group dev
 
 # Copia todo o codigo fonte (incluindo api, data, training, etc.)
 COPY src ./src

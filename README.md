@@ -223,7 +223,15 @@ Variáveis essenciais no `.env`:
 | `POSTGRES_USER` / `POSTGRES_PASSWORD` | Credenciais MLflow DB | `mlflow` / `mlflow_secure_password_2024` |
 | `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` | Credenciais MinIO | `minioadmin` / `minioadmin_secret_key_2024` |
 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | Credenciais S3 | mesmo do MinIO |
-| `API_PORT` | Porta da API | `8000` |
+| `MLFLOW_PORT` | Porta do MLflow Server | `5000` |
+| `MLFLOW_WORKERS` | Workers do Gunicorn | `2` |
+| `API_PORT` | Porta da API FastAPI | `8000` |
+| `LOG_LEVEL` | Nivel de log (DEBUG, INFO, WARNING, ERROR) | `INFO` |
+| `LOG_FORMAT` | Formato de log (json ou text) | `json` |
+| `PREDICTION_SLO_MS` | Limiar de latencia SLO em ms | `500.0` |
+| `GRAFANA_ADMIN_USER` | Usuario admin do Grafana | `admin` |
+| `GRAFANA_ADMIN_PASSWORD` | Senha admin do Grafana | `admin` |
+| `DVC_ONEDRIVE_REMOTE_URL` | URL do remote DVC (OneDrive) | *(vazio)* |
 
 > Nunca versionar o arquivo `.env` com credenciais reais.
 
@@ -261,7 +269,7 @@ Saída de cada pipeline:
 | `train-mlp` | Modelo em `models/churn_mlp_best.pt`, scaler em `models/scaler.pkl`, artefatos no MLflow |
 | `train-logistic` | Modelo registrado no MLflow + cross-validation |
 | `tune-mlp` | Estudo Optuna em `reports/optuna_study.csv` |
-| `compare-models` | `MLP_VERSUS_BASELINE.md` com tabela comparativa |
+| `compare-models` | `docs/MLP_VERSUS_BASELINE.md` com tabela comparativa |
 | `analyze` | `reports/mlflow_analysis.csv` + `reports/experiment_comparison.md` |
 | `validate-model` | `reports/model_validation.json` com status OK/WARNING/CRITICAL |
 

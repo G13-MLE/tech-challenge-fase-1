@@ -83,11 +83,12 @@ def _save_outputs(
             result.threshold_df.to_csv(path, index=False)
 
     # Relatorio markdown
-    logger.info("Gerando relatorio MLP_VERSUS_BASELINE.md...")
+    logger.info("Gerando relatorio docs/MLP_VERSUS_BASELINE.md...")
     markdown = generate_markdown_report(
         all_results, comparison_df, threshold_df
     )
-    report_path = Path("MLP_VERSUS_BASELINE.md")
+    report_path = Path("docs/MLP_VERSUS_BASELINE.md")
+    report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(markdown, encoding="utf-8")
     logger.info("Relatorio salvo em: %s", report_path)
 
