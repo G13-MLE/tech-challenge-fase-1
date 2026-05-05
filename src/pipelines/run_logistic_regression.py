@@ -8,6 +8,7 @@ de desbalanceamento.
 from __future__ import annotations
 
 import argparse
+import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -205,8 +206,9 @@ def main(argv: list[str] | None = None) -> int:
 
         mlflow.sklearn.log_model(result["model"], "model")
 
-    print("[Logistic] Treino concluido com sucesso.")
-    print(
+    logger = logging.getLogger(__name__)
+    logger.info("[Logistic] Treino concluido com sucesso.")
+    logger.info(
         "[Logistic] Metricas teste: "
         + ", ".join(f"{k}={v:.4f}" for k, v in result["metrics"].items())
     )

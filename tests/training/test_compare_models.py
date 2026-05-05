@@ -47,9 +47,7 @@ def sample_results() -> dict[str, ModelResult]:
     )
     y_pred_logistic = (y_proba_logistic > THRESHOLD).astype(int)
 
-    y_proba_mlp = np.clip(
-        y_true * 0.8 + np.random.normal(0, 0.1, n), 0, 1
-    )
+    y_proba_mlp = np.clip(y_true * 0.8 + np.random.normal(0, 0.1, n), 0, 1)
     y_pred_mlp = (y_proba_mlp > THRESHOLD).astype(int)
 
     threshold_df = pd.DataFrame(

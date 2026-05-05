@@ -17,6 +17,7 @@ dependencies = [
     "prometheus-client>=0.25.0",
     "prometheus-fastapi-instrumentator>=7.1.0",
     "imbalanced-learn>=0.14.1",
+    "pandera>=0.31.1",
 ]
 authors = [
   {name = "Fernando Failla Foschiani", email = "fefailla68@gmail.com"}

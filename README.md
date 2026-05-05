@@ -62,14 +62,77 @@ modelagem, rastreamento, serviço e observabilidade:
 
 O **ML Canvas** (disponível em `docs/ML_CANVAS.pdf`) descreve um **cenário futuro e ideal** de produção para o projeto de churn, projetando um ambiente operacional completo com, por exemplo: pipeline de batch diário (scoring à meia-noite UTC), escala de ~365M linhas (24 meses de histórico), integração operacional com CRM, CS, Marketing e Sales, cache Redis, fallbacks, shadow mode, canary deploy governança LGPD. Esses elementos compõem um **cenário lúdico de enriquecimento**, útil para demonstrar visão de produto e planejamento de MLOps, mas **não fazem parte dos requisitos do Tech Challenge Fase 1**.
 
-O código deste repositório implementa estritamente os entregáveis das **4 Etapas do Desafio**:
+O código deste repositório implementa os entregáveis das
+**4 Etapas do Desafio**. Veja o mapeamento detalhado abaixo.
 
-| Etapa | Foco | Conformidade |
-|-------|------|--------------|
-| Etapa 1 | EDA, baselines (Dummy + Logistic), métricas (AUC-ROC, PR-AUC, F1), custo de negócio, MLflow | Conforme |
-| Etapa 2 | MLP PyTorch, early stopping, comparação >= 4 métricas, trade-off FN/FP | Conforme |
-| Etapa 3 | Refatoração `src/`, API FastAPI, Pydantic, logging, testes pytest, Makefile | Conforme |
-| Etapa 4 | Model Card, documentação de deploy e monitoramento, README, vídeo STAR | Conforme |
+---
+
+## Entregáveis do Tech Challenge por Etapa
+
+### Etapa 1 -- Entendimento e Preparação
+
+| Requisito | Status | Localização |
+|-----------|--------|-------------|
+| ML Canvas (stakeholders, métricas de negócio, SLOs) | [OK] | [`docs/ML_CANVAS.pdf`](docs/ML_CANVAS.pdf), [`docs/ML_CANVAS.png`](docs/ML_CANVAS.png) |
+| EDA completa (volume, qualidade, distribuição, readiness) | [OK] | [`notebooks/01_eda.py`](notebooks/01_eda.py) (Marimo, 1404 linhas) |
+| Métrica técnica (AUC-ROC, PR-AUC, F1) + métrica de negócio (custo) | [OK] | [`src/training/metrics.py`](src/training/metrics.py) (L105-478), [`docs/RESULTADOS_BASELINE.md`](docs/RESULTADOS_BASELINE.md) |
+| Baseline DummyClassifier + Logistic Regression (scikit-learn) | [OK] | [`src/pipelines/run_dummy_baseline.py`](src/pipelines/run_dummy_baseline.py), [`src/pipelines/run_logistic_regression.py`](src/pipelines/run_logistic_regression.py), [`src/training/dummy_trainer.py`](src/training/dummy_trainer.py), [`src/training/logistic_trainer.py`](src/training/logistic_trainer.py) |
+| Registro de experimentos no MLflow (parâmetros, métricas, dataset version) | [OK] | [`src/training/mlflow_tracking.py`](src/training/mlflow_tracking.py), [`src/data/versioning.py`](src/data/versioning.py) |
+
+**Entregável Etapa 1:** notebook de EDA +
+baselines registrados no MLflow.
+
+### Etapa 2 -- Modelagem com Redes Neurais
+
+| Requisito | Status | Localização |
+|-----------|--------|-------------|
+| MLP em PyTorch (arquitetura, ativação, loss function) | [OK] | [`src/training/mlp/model.py`](src/training/mlp/model.py) (Linear->BatchNorm->ReLU->Dropout->Linear, BCEWithLogitsLoss) |
+| Loop de treinamento com early stopping e batching | [OK] | [`src/training/mlp/trainer.py`](src/training/mlp/trainer.py) (DataLoader, epochs, scheduler), [`src/training/mlp/early_stopping.py`](src/training/mlp/early_stopping.py) |
+| Comparar MLP vs. baselines (>= 4 métricas) | [OK] | [`src/pipelines/run_compare_models.py`](src/pipelines/run_compare_models.py), [`docs/MLP_VERSUS_BASELINE.md`](docs/MLP_VERSUS_BASELINE.md) (7 métricas + custo) |
+| Análise trade-off custo FP/FN | [OK] | [`src/training/metrics.py`](src/training/metrics.py) (L410-478: analyze_threshold_tradeoff), [`reports/threshold_comparison.csv`](reports/threshold_comparison.csv) |
+| Registrar experimentos no MLflow | [OK] | Todos os pipelines registram runs com params, métricas, artefatos e `model_card.json` |
+
+**Entregável Etapa 2:** tabela comparativa de modelos +
+MLP treinado + artefatos no MLflow.
+
+### Etapa 3 -- Engenharia e API
+
+| Requisito | Status | Localização |
+|-----------|--------|-------------|
+| Refatoração em módulos `src/` | [OK] | [`src/api/`](src/api/), [`src/config/`](src/config/), [`src/data/`](src/data/), [`src/features/`](src/features/), [`src/inference/`](src/inference/), [`src/pipelines/`](src/pipelines/), [`src/schemas/`](src/schemas/), [`src/training/`](src/training/), [`src/tools/`](src/tools/) |
+| Pipeline reprodutível (sklearn + transformadores custom) | [OK] | [`src/features/pipeline.py`](src/features/pipeline.py) (Pipeline com Imputer, Scaler, OHE, SMOTE), [`src/data/preprocessing.py`](src/data/preprocessing.py) |
+| Testes pytest (unitários, schema Pandera, smoke test) | [OK] | [`tests/`](tests/) (28+ arquivos), [`tests/test_api.py`](tests/test_api.py) (smoke test + API), [`tests/test_pandera_schema.py`](tests/test_pandera_schema.py) (schema validation), [`tests/data/test_validation.py`](tests/data/test_validation.py) |
+| API FastAPI: `/predict`, `/health`, validação Pydantic | [OK] | [`src/api/main.py`](src/api/main.py), [`src/api/schemas.py`](src/api/schemas.py) (PredictRequest/PredictResponse strict+forbid), [`src/api/inference.py`](src/api/inference.py) |
+| Logging estruturado + middleware de latência | [OK] | [`src/api/logging.py`](src/api/logging.py) (JSON estruturado), [`src/api/middleware/latency.py`](src/api/middleware/latency.py) (SLO 500ms), [`src/api/middleware/request_id.py`](src/api/middleware/request_id.py) |
+| pyproject.toml, ruff, Makefile | [OK] | [`pyproject.toml`](pyproject.toml) (ruff L79, pytest L62-72, mypy L55-60), [`Makefile`](Makefile) |
+
+**Entregável Etapa 3:** repositório refatorado +
+API funcional + testes passando.
+
+### Etapa 4 -- Documentação e Entrega Final
+
+| Requisito | Status | Localização |
+|-----------|--------|-------------|
+| Model Card (performance, limitações, vieses, cenários de falha) | [OK] | [`docs/MODEL_CARD.md`](docs/MODEL_CARD.md) (451 linhas), [`src/training/model_card.py`](src/training/model_card.py) (geração dinâmica) |
+| Arquitetura de deploy (batch vs. real-time) + justificativa | [OK] | [`docs/ARQUITETURA_DE_DEPLOY.md`](docs/ARQUITETURA_DE_DEPLOY.md) (430 linhas, comparativo batch/real-time, AWS/Azure/GCP) |
+| Plano de monitoramento (métricas, alertas, playbook) | [OK] | [`docs/MONITORAMENTO.md`](docs/MONITORAMENTO.md) (715 linhas, dashboards, drift, playbook P1-P4) |
+| README com instruções de setup + execução + arquitetura | [OK] | [`README.md`](README.md) |
+| Vídeo de 5 min (método STAR) | [PENDENTE] | Entregável externo -- não versionado no repositório |
+| (Opcional) Deploy da API em nuvem com endpoint público | [PENDENTE] | Apenas deploy do EDA Marimo (GitHub Pages). API não deployada em cloud. Ver [`docs/ARQUITETURA_DE_DEPLOY.md`](docs/ARQUITETURA_DE_DEPLOY.md) para opções documentadas |
+
+**Entregável Etapa 4:** repositório final +
+vídeo STAR + (opcional) URL do deploy em nuvem.
+
+### Boas Práticas Obrigatórias
+
+| Requisito | Status | Localização |
+|-----------|--------|-------------|
+| Seeds fixados para reprodutibilidade | [OK] | [`src/constants.py`](src/constants.py) (L10: `RANDOM_SEED = 42`), aplicado em todos os pipelines |
+| Validação cruzada estratificada | [OK] | [`src/training/mlp/trainer.py`](src/training/mlp/trainer.py) (StratifiedKFold 5 folds), [`src/training/logistic_trainer.py`](src/training/logistic_trainer.py), [`src/data/splitting.py`](src/data/splitting.py) |
+| Model Card documentando limitações e vieses | [OK] | [`docs/MODEL_CARD.md`](docs/MODEL_CARD.md) seções 8-10 (Ethical Considerations, Caveats, Failure Scenarios) |
+| Testes automatizados (>= 3: smoke, schema, API) | [OK] | [`tests/test_api.py`](tests/test_api.py) (smoke + API), [`tests/test_pandera_schema.py`](tests/test_pandera_schema.py) (schema Pandera), [`tests/data/test_validation.py`](tests/data/test_validation.py) (validação dados) |
+| Logging estruturado (sem `print()`) | [OK] | [`src/api/logging.py`](src/api/logging.py) (JSON estruturado via python-json-logger) |
+| Linting com ruff sem erros | [OK] | `ruff check .` = "All checks passed!" |
 
 ## Resultados
 
