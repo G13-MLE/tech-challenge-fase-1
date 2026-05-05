@@ -5,7 +5,6 @@
 - **Dataset:** Telco Customer Churn
 - **Origem:** IBM Sample Data Sets
 - **Referência pública:**
-  - IBM Community: https://community.ibm.com/community/user/businessanalytics/blogs/monil-shah/2019/07/31/how-to-calculate-customer-churn-rate-in-spss-modeler
   - Kaggle (espelho amplamente utilizado):
     https://www.kaggle.com/datasets/blastchar/telco-customer-churn
 

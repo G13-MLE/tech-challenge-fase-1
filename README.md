@@ -1,35 +1,132 @@
-# Tech Challenge — Fase 1
+# Tech Challenge (GRUPO 106) - Fase 1: Predição de Churn em Telecom
 
+[![Python](https://img.shields.io/badge/Python-3.12%2B-blue)](https://www.python.org/)
+[![Code Quality: ruff](https://img.shields.io/badge/Code%20Quality-ruff-green)](https://docs.astral.sh/ruff/)
+[![Type Check: mypy](https://img.shields.io/badge/Type%20Check-mypy-blue)](https://mypy.readthedocs.io/)
+[![Coverage: 80%+](https://img.shields.io/badge/Coverage-80%25%2B-brightgreen)](https://pytest.org/)
 [![Open EDA](https://img.shields.io/badge/Open-EDA%20Notebook-blue)](https://g13-mle.github.io/tech-challenge-fase-1/)
+[![Deploy](https://img.shields.io/badge/Deploy-Marimo%20WASM-green)](https://g13-mle.github.io/tech-challenge-fase-1/)
+[![Model Card](https://img.shields.io/badge/Docs-Model%20Card-purple)](./MODEL_CARD.md)
 
-Pipeline end-to-end de ML para previsão de churn em telecomunicações — MLP com PyTorch, baselines Scikit-Learn, rastreamento com MLflow e API de inferência com FastAPI. Tech Challenge Fase 1 · PÓS TECH FIAP.
+Pipeline end-to-end de Machine Learning para predição de churn em
+telecomunicações. Inclui baselines com scikit-learn, modelo MLP com PyTorch,
+rastreamento de experimentos via MLflow, API de inferência com FastAPI,
+observabilidade com Prometheus/Grafana e EDA interativo com Marimo.
 
-## Contexto do problema
+## Sumário
 
-Em telecom, churn representa o cancelamento de clientes. Antecipar esse comportamento ajuda o negócio a:
+- [Visão Geral](#visão-geral)
+- [Resultados](#resultados)
+- [Estrutura do Repositório](#estrutura-do-repositório)
+- [Dataset](#dataset)
+- [Instalação e Setup](#instalação-e-setup)
+- [Como Usar](#como-usar)
+- [Como Executar Localmente](#como-executar-localmente)
+- [Como Fazer Deploy](#como-fazer-deploy)
+- [EDA Interativo](#eda-interativo-marimo)
+- [Stack e Versões](#stack-e-versões)
+- [Model Card](#model-card)
+- [Roadmap](#roadmap)
+- [Autores](#autores)
 
-- reduzir perda de receita;
-- priorizar ações de retenção;
-- melhorar a experiência do cliente com decisões orientadas por dados.
+## Visão Geral
 
-## Estrutura do repositório
+### O Problema
+
+Em telecomunicações, churn (cancelamento de clientes) representa perda
+direta de receita. Antecipar quais clientes vão cancelar permite direcionar
+ações de retenção de forma eficiente, reduzindo custos e melhorando a
+experiência do cliente.
+
+### A Solução
+
+Pipeline completo de ML cobrindo exploração, pré-processamento,
+modelagem, rastreamento, serviço e observabilidade:
+
+1. **EDA interativo** com Marimo (WASM para navegador, Python para local)
+2. **Pré-processamento** one-hot encoding, StandardScaler, split
+   estratificado
+3. **Modelagem** MLP (PyTorch) + baselines DummyClassifier e Logistic
+   Regression
+4. **Tuning** hiperparâmetros do MLP com Optuna
+5. **Rastreamento** MLflow para métricas, parâmetros e artefatos
+6. **Análise comparativa** relatório automatizado de experimentos
+7. **API** FastAPI com validação Pydantic, health check, metrics
+   Prometheus e drift detection
+8. **Observabilidade** Prometheus + Grafana com dashboards
+   provisionados
+
+## Resultados
+
+### Tabela Comparativa
+
+| Métrica | Dummy (stratified) | Logistic Regression | MLP Original | MLP Tunado |
+|---------|--------------------|---------------------|--------------|------------|
+| Accuracy | 0.615 | **0.804** | 0.792 | 0.800 |
+| Precision | 0.277 | **0.648** | 0.609 | 0.639 |
+| Recall | 0.278 | 0.575 | 0.604 | 0.567 |
+| F1-Score | 0.277 | **0.609** | 0.607 | 0.601 |
+| ROC-AUC | 0.507 | **0.836** | 0.831 | 0.835 |
+| PR-AUC | 0.269 | 0.621 | 0.615 | **0.632** |
+| Brier Score | 0.266 | **0.140** | 0.143 | 0.140 |
+
+- **Melhor ROC-AUC:** Logistic Regression (0.836)
+- **Melhor PR-AUC:** MLP Tunado (0.632) -- métrica mais relevante para
+  datasets desbalanceados
+- **Menor custo de negócio:** MLP Tunado (R$ 81.250 com FN=R$500 e
+  FP=R$50)
+
+### Custo de Negócio
+
+Cenário: FN (não detectar churner) custa R$500; FP (retenção
+desnecessária) custa R$50.
+
+| Modelo | FN | FP | Custo Total (R$) |
+|--------|----|----|-------------------|
+| Dummy (most_frequent) | 374 | 0 | 187.000 |
+| Dummy (stratified) | 270 | 272 | 148.600 |
+| Logistic Regression | 159 | 117 | 85.350 |
+| MLP | 148 | 145 | 81.250 |
+
+Detalhes completos em
+[`docs/RESULTADOS_BASELINE.md`](docs/RESULTADOS_BASELINE.md) e
+[`docs/MLP_VERSUS_BASELINE.md`](docs/MLP_VERSUS_BASELINE.md).
+
+## Estrutura do Repositório
 
 ```text
 tech-challenge-fase-1/
 ├── src/
-│   ├── data/       # Importação e parse de dados
-│   ├── features/   # Limpeza, feature engineering e seleção
-│   ├── eda/        # Funções auxiliares para exploração
-│   ├── training/   # Split, treino e tuning
-│   ├── inference/  # Predição desacoplada da camada web
-│   ├── schemas/    # Schemas de validação (Pandera/Pydantic)
-│   ├── api/        # Camada FastAPI
-│   └── pipelines/  # Scripts de execução/orquestração
-├── data/           # Dados do projeto
-├── models/         # Artefatos de modelo
-├── tests/          # Testes automatizados
-├── notebooks/      # Exploração e análises
-└── docs/           # Documentação complementar
+│   ├── api/            # FastAPI: predição, health, metrics, drift
+│   ├── config/         # Dataclasses de configuração (MLP, Training)
+│   ├── data/           # Load, preprocessing, splitting, validation
+│   ├── eda/            # Funções auxiliares para exploração
+│   ├── features/       # Feature engineering e seleção
+│   ├── inference/      # Recuperação de modelos do MLflow
+│   ├── pipelines/      # Scripts de execução: dummy, mlp, logistic,
+│   │                     tuning, compare, metrics
+│   ├── schemas/        # Schemas de validação (Pydantic)
+│   ├── tools/          # Análise de experimentos MLflow
+│   └── training/       # Treino, métricas, plots, MLflow tracking, model_card
+│                       # model_card
+├── data/
+│   └── raw/            # Dataset Telco Customer Churn (DVC-tracked)
+├── models/             # Artefatos de modelo (DVC-tracked)
+│   ├── churn_mlp_best.pt
+│   ├── best_model.pt
+│   ├── scaler.pkl
+│   └── feature_names.json
+├── docker/                     # Dockerfiles e compose
+│   ├── docker-compose.yml      # MLflow + PostgreSQL + MinIO
+│   ├── docker-compose.api.yml  # API + Prometheus + Grafana
+│   ├── grafana/                # Dashboards provisionados
+│   └── prometheus.yml
+├── notebooks/          # EDA e exploração (Marimo)
+├── tests/              # Testes automatizados (pytest, coverage 80%+)
+├── reports/            # Relatórios de experimentos
+├── docs/               # Documentação complementar
+├── MODEL_CARD.md       # Model Card detalhado
+└── .github/workflows/  # CI: deploy Marimo WASM
 ```
 
 ### Documentacao de arquitetura e operacao
@@ -50,194 +147,111 @@ tech-challenge-fase-1/
 - Dicionário de dados:
   `docs/DICIONARIO_DE_DADOS.md`
 
-Fonte e referência pública:
+**Telco Customer Churn** (IBM Sample Data)
 
-- IBM Community:
-  https://community.ibm.com/community/user/businessanalytics/blogs/monil-shah/2019/07/31/how-to-calculate-customer-churn-rate-in-spss-modeler
-- Kaggle (espelho amplamente utilizado):
+- Arquivo: `data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv`
+- SHA256: `88be4b93fbe0cc83421af1c503794c97c342eca914c1576db7c276e61d61358a`
+- Amostras: ~7.043 clientes (após limpeza: ~7.032)
+- Taxa de churn: ~26,5% (classe minoritária)
+- Features: 20 colunas originais, ~45 após one-hot encoding
+- Split: 80% treino / 20% teste, estratificado, seed=42
+
+Fontes:
+- Kaggle:
   https://www.kaggle.com/datasets/blastchar/telco-customer-churn
 
-> Observação de licença/uso: o dataset é amplamente usado para estudo e
-> demonstração. Antes de uso comercial/produção, valide os termos da fonte
-> escolhida e as políticas internas.
+Dicionário de dados:
+[`docs/DICIONARIO_DE_DADOS.md`](docs/DICIONARIO_DE_DADOS.md)
 
-Validação local do dataset:
+> Uso: dataset de domínio público para estudo e demonstração. Valide os termos da fonte escolhida antes de uso comercial.
 
-```bash
-python src/data/prepare_telco_dataset.py
-```
+## Instalação e Setup
 
-## Regra de execução (pipelines)
-
-- Não gerar artefatos finais (modelos treinados, bases finais, tracking de experimento) a partir de notebooks.
-- Notebooks são para exploração.
-- Artefatos finais devem ser gerados por scripts parametrizáveis em `src/pipelines/`, executados via terminal.
-
-## Instalação (setup de ambiente)
-
-Pré-requisitos:
+### Requisitos
 
 - Python `>=3.12,<3.14`
-- [uv](https://docs.astral.sh/uv/getting-started/installation/) instalado
-- (Opcional) Docker + Docker Compose para subir o MLflow local
+- [uv](https://docs.astral.sh/uv/getting-started/installation/)
+- Docker + Docker Compose para MLflow e API
+
+### Instalação
 
 ```bash
 # clonar repositório
 git clone https://github.com/G13-MLE/tech-challenge-fase-1.git
 cd tech-challenge-fase-1
 
-# sincronizar dependências (runtime + dev)
-uv sync
-
-# instalar hooks de qualidade
-uv run pre-commit install
+# instalar dependências (runtime + dev) e hooks de qualidade
+make setup
 ```
 
-## Sincronização do Ambiente
+O comando `make setup` executa:
 
-Para sincronizar o ambiente incluindo pacotes de desenvolvimento utilizando o uv, use:
+1. `uv sync` -- instalação de dependências
+2. `pre-commit install` -- hooks de qualidade (ruff, mypy)
+3. Configuração do DVC remote (prompt interativo para URL)
 
-```bash
-uv sync
-```
-
-Para sincronizar sem dependências de desenvolvimento, útil para CI e containers Docker, use:
-
-```bash
-uv sync --no-dev
-```
-
-Para aplicar mudanças no `pyproject.toml` com lockfile atualizado, use:
-
-```bash
-uv lock
-uv sync
-```
-
-## Stack e versões definidas
-
-Referência consolidada com base no `pyproject.toml` atual da branch.
-
-- **Python:** `>=3.12,<3.14`
-- **Dependências base:**
-  - `dotenv>=0.9.9`
-  - `fastapi>=0.135.2`
-  - `pandas>=2.3.3`
-  - `scikit-learn>=1.8.0`
-- **Dependências de desenvolvimento:**
-  - `mlflow>=3.10.1`
-  - `ruff>=0.15.8`
-  - `mypy>=1.20.0`
-  - `pytest>=9.0.2`
-  - `pytest-cov>=7.1.0`
-  - `pre-commit>=4.5.1`
-  - `torch>=2.11.0`
-  - `httpx>=0.27.0`
-  - `rich>=13.0.0`
-  - `boto3>=1.28.0`
-
-### Qualidade e testes (padrões iniciais)
-
-- lint e formatação com **Ruff**;
-- tipagem estática com **MyPy**;
-- testes com **Pytest**;
-- cobertura mínima alvo em `src`: **80%**.
-
-## Configuração de Variáveis de Ambiente
-
-Para configuração local, copie o arquivo de exemplo:
+### Variáveis de Ambiente
 
 ```bash
 cp .env.example .env
 ```
 
-Preencha no `.env` as variáveis essenciais para começar (baseadas no `.env.example`):
+Variáveis essenciais no `.env`:
+
+| Variável | Descrição | Padrão |
+|----------|-----------|--------|
+| `MLFLOW_TRACKING_URI` | URL do MLflow | `http://localhost:5000` |
+| `MLFLOW_S3_ENDPOINT_URL` | URL do MinIO | `http://localhost:9000` |
+| `MLFLOW_DUMMY_EXPERIMENT_NAME` | Experimento Dummy | `tech-challenge-dummy-baseline` |
+| `MLFLOW_MLP_EXPERIMENT_NAME` | Experimento MLP | `tech-challenge-mlp` |
+| `MLFLOW_LOGISTIC_EXPERIMENT_NAME` | Experimento Logistic | `tech-challenge-logistic-regression` |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` | Credenciais MLflow DB | `mlflow` / `mlflow_secure_password_2024` |
+| `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` | Credenciais MinIO | `minioadmin` / `minioadmin_secret_key_2024` |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | Credenciais S3 | mesmo do MinIO |
+| `API_PORT` | Porta da API | `8000` |
+
+> Nunca versionar o arquivo `.env` com credenciais reais.
+
+## Como Usar
+
+### Treinamento de Modelos
+
+Requisitos: `.env` configurado, MLflow rodando (`make docker-up`), dataset
+em `data/raw/`.
 
 ```bash
-MLFLOW_PORT=5000
-MLFLOW_WORKERS=2
-POSTGRES_USER=mlflow
-POSTGRES_PASSWORD=mlflow_secure_password_2024
-POSTGRES_DB=mlflow_db
-MINIO_ACCESS_KEY=minioadmin
-MINIO_SECRET_KEY=minioadmin_secret_key_2024
-MLFLOW_TRACKING_URI=http://localhost:5000
-MLFLOW_S3_ENDPOINT_URL=http://localhost:9000
-AWS_ACCESS_KEY_ID=minioadmin
-AWS_SECRET_ACCESS_KEY=minioadmin_secret_key_2024
-MLFLOW_DUMMY_EXPERIMENT_NAME=tech-challenge-dummy-baseline
-```
-
-> Security: nunca versionar o arquivo `.env` com credenciais reais.
-
-## Comandos básicos
-
-Comandos disponíveis no momento (validação local):
-
-```bash
-# verificar branch atual
-git branch --show-current
-
-# ver mudanças locais
-git status
-```
-
-## Comandos Disponíveis (Makefile)
-
-O projeto inclui um Makefile com comandos essenciais para desenvolvimento:
-
-### Setup
-
-```bash
-make setup        # Configurar ambiente (uv sync + pre-commit)
-```
-
-### Docker (MLflow)
-
-```bash
-make docker-up    # Iniciar MLflow em background (requer .env)
-make docker-down  # Parar todos os containers MLflow
-```
-
-### Treinamento do Modelo MLP
-
-Para treinar o modelo MLP (Multi-Layer Perceptron) com PyTorch:
-
-**Pré-requisitos:**
-- Arquivo `.env` configurado (veja seção "Configuração de Variáveis de Ambiente")
-- MLflow rodando localmente (`make docker-up`)
-- Dataset Telco no caminho `data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv`
-
-**Executar treino:**
-
-```bash
-# Opção 1: Usando o Makefile (recomendado)
+# Treinar todos os modelos sequencialmente
 make train
 
-# Opção 2: Executando diretamente com uv
-uv run python -m src.pipelines.train_mlp
+# Modelos individuais
+make train-dummy      # DummyClassifier (3 estratégias)
+make train-mlp         # MLP com PyTorch
+make train-logistic    # Logistic Regression com SMOTE e CV estratificada
 
-# Opção 3: Com argumentos customizados
-uv run python -m src.pipelines.train_mlp \
-    --input data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv \
-    --experiment-name churn-mlp-v1
+# Tuning de hiperparâmetros
+make tune-mlp          # Optuna (default: 20 trials)
+
+# Comparar modelos e gerar relatório
+make compare-models
+
+# Analisar experimentos do MLflow
+make analyze
 ```
 
-**O que o treino faz:**
-1. Carrega e pré-processa os dados (one-hot encoding, padronização)
-2. Divide em treino/teste (80/20) com estratificação
-3. Treina MLP com arquitetura configurável (padrão: 128→64→32 neurônios)
-4. Aplica early stopping e learning rate scheduling
-5. Registra métricas e modelo no MLflow
-6. Salva o melhor modelo em `models/churn_mlp_best.pt`
+Saída de cada pipeline:
 
-**Métricas geradas:**
-- Acurácia, Precisão, Recall, F1-Score, AUC-ROC
-- Visualização no MLflow UI (http://localhost:5000)
+| Pipeline | Saída |
+|----------|-------|
+| `train-dummy` | Métricas no MLflow + `models/dummy_baseline_comparison.csv` |
+| `train-mlp` | Modelo em `models/churn_mlp_best.pt`, scaler em `models/scaler.pkl`, artefatos no MLflow |
+| `train-logistic` | Modelo registrado no MLflow + cross-validation |
+| `tune-mlp` | Estudo Optuna em `reports/optuna_study.csv` |
+| `compare-models` | `MLP_VERSUS_BASELINE.md` com tabela comparativa |
+| `analyze` | `reports/mlflow_analysis.csv` + `reports/experiment_comparison.md` |
 
-### API (FastAPI)
+### Inferência
 
-Para testar e desenvolver a API localmente com hot-reload, utilize os seguintes comandos:
+Recuperar modelo do MLflow para uso local:
 
 ```bash
 make api-up       # Sobe a API + Prometheus + Grafana (API em http://localhost:8000/docs)
@@ -258,33 +272,155 @@ Dashboards disponiveis:
 - *API Churn - Data Drift*: deteccoes de drift, PSI por feature, distribuicao de probabilidades
 ```
 
-### Desenvolvimento
+### Monitoramento (Prometheus + Grafana)
 
-```bash
-make test         # Rodar testes com cobertura
-make lint         # Verificar código com ruff
-make format       # Formatar código com ruff
+A stack de monitoramento sobe automaticamente com `make api-up`:
+
+- **API**: http://localhost:8000 — endpoints `/health`, `/predict`, `/metrics`
+- **Prometheus**: http://localhost:9090 — scraping metricas a cada 15s
+- **Grafana**: http://localhost:3000 — dashboards pre-provisionados (login: admin/admin)
+
+Dashboards disponiveis:
+- *API Churn - Metricas Operacionais*: latencia, throughput, erros, predicoes
+- *API Churn - Data Drift*: deteccoes de drift, PSI por feature, distribuicao de probabilidades
+uv run python -m src.inference.recover_model \
+    --model-type mlp \
+    --output models/recovered
 ```
 
-### Ajuda
+Tipos suportados: `mlp`, `logistic`, `dummy`.
+
+## Como Executar Localmente
+
+Fluxo completo de desenvolvimento:
 
 ```bash
-make help         # Mostrar todos os comandos disponíveis
+# 1. Setup
+cp .env.example .env
+make setup
+
+# 2. Subir MLflow
+make docker-up
+
+# 3. Treinar modelos
+make train
+
+# 4. Analisar resultados
+make analyze
+
+# 5. Subir API + observabilidade
+make api-up
+
+# 6. Testar
+make api-test
+
+# 7. Qualidade
+make test              # Suite completa com coverage (mín 80%)
+make lint              # Ruff linter
+make format            # Ruff formatter
+uv run mypy src/       # Type check (strict mode)
+
+# 8. Parar serviços
+make api-down
+make docker-down
 ```
 
-### Acessar
+### API FastAPI
+
+```bash
+# Subir API + Prometheus + Grafana
+make api-up
+
+# Testar predição
+make api-test
+
+# Teste de carga batch (default: 100 requisições)
+make api-load
+
+# Teste de carga contínua (default: 5 req/s, Ctrl+C para parar)
+make api-load-watch
+
+# Parar serviços
+make api-down
+```
+
+Endpoints disponíveis:
+
+| Endpoint | Método | Descrição |
+|----------|--------|-----------|
+| `/health` | GET | Health check da API |
+| `/predict` | POST | Predição de churn para um cliente |
+| `/metrics` | GET | Métricas Prometheus |
+
+Exemplo de request para `/predict`:
+
+```bash
+curl -X POST "http://localhost:8000/predict" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "customerID": "7590-VHVEG",
+       "gender": "Female",
+       "SeniorCitizen": 0,
+       "Partner": "Yes",
+       "Dependents": "No",
+       "tenure": 1,
+       "PhoneService": "No",
+       "MultipleLines": "No phone service",
+       "InternetService": "DSL",
+       "OnlineSecurity": "No",
+       "OnlineBackup": "Yes",
+       "DeviceProtection": "No",
+       "TechSupport": "No",
+       "StreamingTV": "No",
+       "StreamingMovies": "No",
+       "Contract": "Month-to-month",
+       "PaperlessBilling": "Yes",
+       "PaymentMethod": "Electronic check",
+       "MonthlyCharges": 29.85
+     }'
+```
+
+Serviços acessíveis:
 
 - MLflow UI: http://localhost:5000
 - Grafana: http://localhost:3000 (admin/admin)
 - Prometheus: http://localhost:9090
 
+| Serviço | URL |
+|---------|-----|
+| API docs (Swagger) | http://localhost:8000/docs |
+| MLflow UI | http://localhost:5000 |
+| Prometheus | http://localhost:9090 |
+| Grafana | http://localhost:3000 (admin/admin) |
+
+## Como Fazer Deploy
+
+### Docker Compose Local
+
+O projeto inclui dois stacks Docker:
+
+**MLflow Stack** (`docker/docker-compose.yml`):
+- MLflow tracking server
+- PostgreSQL (backend store)
+- MinIO (artifact store S3-compatible)
+
+**API Stack** (`docker/docker-compose.api.yml`):
+- FastAPI com hot-reload
+- Prometheus (scraping de métricas)
+- Grafana (dashboards provisionados)
+
+```bash
+make docker-up    # MLflow (necessário para treino)
+make api-up       # API + observabilidade
+```
+
 ## EDA Interativo (Marimo)
 
-Notebook de exploração disponível online e localmente.
+**Online (WASM):**
+https://g13-mle.github.io/tech-challenge-fase-1/
 
-**Online (WASM):** [https://g13-mle.github.io/tech-challenge-fase-1/](https://g13-mle.github.io/tech-challenge-fase-1/) — roda no navegador, sem backend Python.
-
-> Limitações WASM: overhead de performance e ~2GB de RAM.
+Roda no navegador sem backend Python. Limitações WASM: overhead de
+performance e ~2GB de RAM.
 
 **Local:**
 
@@ -295,54 +431,56 @@ uv run marimo edit notebooks/01_eda.py
 **Re-exportar versão WASM:**
 
 ```bash
-uv run marimo export html-wasm notebooks/01_eda.py -o docs --mode run --force --sandbox
+uv run marimo export html-wasm notebooks/01_eda.py -o docs \
+    --mode run --force --sandbox
 ```
 
-## Roadmap / Próximos passos
+Deploy automático via GitHub Actions
+(`.github/workflows/deploy-marimo.yml`) a cada push na branch `main`.
 
-Resumo conciso do cronograma de execução (issue de controle):
+## Stack e Versões
 
-- **Etapa 0 (26/03 → 06/04):** setup de repositório e base técnica;
-- **Etapa 1 (07/04 → 20/04):** entendimento dos dados (EDA) e baselines;
-- **Etapa 2 (21/04 → 30/04):** modelagem com MLP (PyTorch);
-- **Etapa 3 (24/04 → 04/05):** engenharia (API, testes, integração);
-- **Etapa 4 (01/05 → 05/05):** documentação final e entrega.
+| Componente | Versão |
+|------------|--------|
+| Python | >=3.12, <3.14 |
+| PyTorch | 2.11+ |
+| scikit-learn | 1.8+ |
+| Optuna | 4.8+ |
+| FastAPI | 0.135+ |
+| Pydantic | v2 |
+| MLflow | 3.10+ |
+| Prometheus + Grafana | via Docker |
+| pytest | coverage 80%+ |
+| ruff + mypy | linter + type check (strict) |
+| uv | gerenciador de dependências |
 
-Marcos críticos:
+## Model Card
 
-- **04/05/2026:** gravação do vídeo STAR;
-- **05/05/2026:** entrega final.
+O Model Card detalhado segue o framework de Mitchell et al. (ACM FAccT,
+2019) e está em [`MODEL_CARD.md`](MODEL_CARD.md). Inclui:
 
-## Boas práticas e módulos previstos (baseado na Issue #3)
+- Arquitetura do modelo e hiperparâmetros
+- Intended use e out-of-scope
+- Fatores de variabilidade e vieses
+- Métricas primárias e complementares
+- Dados de avaliação e treino
+- Análise quantitativa (custo, threshold ótimo, bandas de risco)
+- Considerações éticas e mitigações
+- Cenários de falha (dados, modelo, negócio, infraestrutura)
+- Recomendações e limitações
 
-> [OK] **Status:** esta seção descreve direcionadores e componentes **previstos** para evolução do projeto.
-
-Boas práticas de engenharia previstas:
-
-- TDD desde o início dos módulos críticos;
-- padronização de lint/format (ruff);
-- tipagem estática gradual (mypy em CI + pyright no IDE);
-- organização por pipeline reproduzível (ambiente declarativo e containerização);
-- documentação contínua de decisões técnicas e do fluxo de execução.
-
-Módulos e componentes previstos:
-
-- **Qualidade e automação:** pre-commit, testes automatizados e cobertura;
-- **ML pipeline:** `sklearn.Pipeline`, rastreamento com MLflow e serialização de artefatos;
-- **API e contratos:** FastAPI + Pydantic v2 para inferência e validação de entradas;
-- **Operação:** Docker multi-stage, variáveis de ambiente e CI com GitHub Actions;
-- **Suporte ao ciclo de dados:** uso opcional de DVC e organização de notebooks (com possibilidade de jupytext).
+Os valores com marcadores `[MLFLOW:...]` são placeholders preenchidos
+automaticamente durante o treino via `model_card.json` nos artefatos de
+cada run.
 
 ## Autores
 
-- Eduardo Pereira (@eduardonunesp)
-- Bruno Fructuoso (@BrunoFructuoso)
-- Fernando Failla Foschiani (@FernandoFailla)
-- Rafael (@gabipasse)
-- Ygor Martinelli (@ygormartinelli)
+| Nome | GitHub |
+|------|--------|
+| Eduardo Pereira | [@eduardonunesp](https://github.com/eduardonunesp) |
+| Bruno Fructuoso | [@BrunoFructuoso](https://github.com/BrunoFructuoso) |
+| Fernando Failla Foschiani | [@FernandoFailla](https://github.com/FernandoFailla) |
+| Ygor Martinelli | [@ygormartinelli](https://github.com/ygormartinelli) |
 
-## Links úteis
-
-- Roadmap e controle de execução: https://github.com/G13-MLE/tech-challenge-fase-1/issues/7
-- Boas práticas de desenvolvimento (Issue #3): https://github.com/G13-MLE/tech-challenge-fase-1/issues/3
-- Kickoff Planning (Miro): https://miro.com/app/board/uXjVGt4ginw=/
+**Repositório:**
+https://github.com/G13-MLE/tech-challenge-fase-1

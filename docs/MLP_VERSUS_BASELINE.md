@@ -1,10 +1,10 @@
-# Comparacao: MLP vs Modelos Baseline para Predicao de Churn
+# Comparação: MLP vs Modelos Baseline para Predição de Churn
 
-Este documento apresenta a comparacao completa entre o modelo MLP e os modelos baseline (DummyClassifier e Logistic Regression) para predicao de churn.
+Este documento apresenta a comparação completa entre o modelo MLP e os modelos baseline (DummyClassifier e Logistic Regression) para predição de churn.
 
-## 1. Tabela Comparativa de Metricas
+## 1. Tabela Comparativa de Métricas
 
-| Metrica | DummyClassifier_most_frequent | DummyClassifier_stratified | DummyClassifier_uniform | LogisticRegression | MLP |
+| Métrica | DummyClassifier_most_frequent | DummyClassifier_stratified | DummyClassifier_uniform | LogisticRegression | MLP |
 |---------|-------|-------|-------|-------|-------|
 | accuracy | 0.7342 | 0.6148 | 0.5217 | 0.8038 | 0.7918 |
 | precision | 0.0000 | 0.2766 | 0.2879 | 0.6476 | 0.6092 |
@@ -22,12 +22,12 @@ Este documento apresenta a comparacao completa entre o modelo MLP e os modelos b
 | false_negatives | 374.0000 | 270.0000 | 171.0000 | 159.0000 | 148.0000 |
 | true_positives | 0.0000 | 104.0000 | 203.0000 | 215.0000 | 226.0000 |
 
-## 2. Analise de Trade-off FN/FP (Custo de Negocio)
+## 2. Análise de Trade-off FN/FP (Custo de Negócio)
 
-Em telecom, o custo de um **False Negative** (nao detectar um churner) e tipicamente muito maior que o custo de um **False Positive** (oferecer retencao para um cliente leal).
+Em telecom, o custo de um **False Negative** (não detectar um churner) e tipicamente muito maior que o custo de um **False Positive** (oferecer retenção para um cliente leal).
 
-- **Custo FN (LTV perdido por churner nao detectado):** R$ 500
-- **Custo FP (campanha de retencao desnecessaria):** R$ 50
+- **Custo FN (LTV perdido por churner não detectado):** R$ 500
+- **Custo FP (campanha de retenção desnecessária):** R$ 50
 
 - **DummyClassifier_most_frequent:** FN=374, FP=0, Custo total=R$ 187,000
 - **DummyClassifier_stratified:** FN=270, FP=272, Custo total=R$ 148,600
@@ -35,18 +35,18 @@ Em telecom, o custo de um **False Negative** (nao detectar um churner) e tipicam
 - **LogisticRegression:** FN=159, FP=117, Custo total=R$ 85,350
 - **MLP:** FN=148, FP=145, Custo total=R$ 81,250
 
-## 3. Threshold Otimo por Modelo
+## 3. Threshold Ótimo por Modelo
 
-O threshold otimo e definido como o valor que minimiza o custo total de negocio.
+O threshold ótimo e definido como o valor que minimiza o custo total de negócio.
 
 | model | optimal_threshold | optimal_total_cost | optimal_precision | optimal_recall | optimal_f1_score | false_negatives | false_positives |
 |-------|-------|-------|-------|-------|-------|-------|-------|
 | LogisticRegression | 0.0500 | 36800.0000 | 0.3610 | 0.9759 | 0.5271 | 9 | 646 |
 | MLP | 0.0500 | 36900.0000 | 0.3546 | 0.9813 | 0.5209 | 7 | 668 |
 
-## 4. Matrizes de Confusao
+## 4. Matrizes de Confusão
 
-| Modelo | TN (No Churn correto) | FP (Falso alarme) | FN (Churner nao detectado) | TP (Churner detectado) |
+| Modelo | TN (No Churn correto) | FP (Falso alarme) | FN (Churner não detectado) | TP (Churner detectado) |
 |--------|----------------------|-------------------|----------------------------|----------------------|
 | DummyClassifier_most_frequent | 1033 | 0 | 374 | 0 |
 | DummyClassifier_stratified | 761 | 272 | 270 | 104 |
@@ -54,12 +54,12 @@ O threshold otimo e definido como o valor que minimiza o custo total de negocio.
 | LogisticRegression | 916 | 117 | 159 | 215 |
 | MLP | 888 | 145 | 148 | 226 |
 
-## 5. Calibracao das Probabilidades
+## 5. Calibração das Probabilidades
 
 - **LogisticRegression:** Brier Score = 0.1402, ECE = 0.0247
 - **MLP:** Brier Score = 0.1430, ECE = 0.0364
 
-## 6. Conclusoes
+## 6. Conclusões
 
 ### Melhor Modelo por ROC-AUC: **LogisticRegression**
 - ROC-AUC = 0.8357
@@ -67,12 +67,12 @@ O threshold otimo e definido como o valor que minimiza o custo total de negocio.
 ### Melhor Modelo por F1-Score: **LogisticRegression**
 - F1-Score = 0.6091
 
-### Menor Custo de Negocio: **MLP**
+### Menor Custo de Negócio: **MLP**
 - Custo total = R$ 81,250
 
 ### MLP vs Logistic Regression
 
-A Logistic Regression superou o MLP em ROC-AUC (0.8357 vs 0.8314), indicando que o modelo linear e suficiente.
+A Logistic Regression superou o MLP em ROC-AUC (0.8357 vs 0.8314), indicando que o modelo linear é suficiente.
 
 A Logistic Regression obteve F1-Score superior (0.6091 vs 0.6067).
 
@@ -80,17 +80,17 @@ A Logistic Regression obteve F1-Score superior (0.6091 vs 0.6067).
 
 O MLP apresenta ROC-AUC de 0.8314 contra 0.5074 do DummyClassifier (stratified), confirmando ganho significativo sobre o baseline.
 
-### Recomendacao
+### Recomendação
 
-**Recomendacao: Analise case-by-case** - Os modelos tem trade-offs diferentes. Considere o custo de implantacao e a necessidade de explicabilidade.
+**Recomendação: Análise case-by-case** - Os modelos têm trade-offs diferentes. Considere o custo de implantacao e a necessidade de explicabilidade.
 
-## 7. Visualizacoes
+## 7. Visualizações
 
-As seguintes visualizacoes foram geradas em `reports/`:
+As seguintes visualizações foram geradas em `reports/`:
 
 - `comparison_roc_curve.png`: Curva ROC comparativa
 - `comparison_pr_curve.png`: Curva Precision-Recall comparativa
-- `comparison_confusion_matrices.png`: Matrizes de confusao
+- `comparison_confusion_matrices.png`: Matrizes de confusão
 - `comparison_cost.png`: Custo total por modelo
 - `comparison_threshold_tradeoff.png`: Trade-off precision/recall/custo por threshold
-- `comparison_metrics_radar.png`: Radar de metricas
+- `comparison_metrics_radar.png`: Radar de métricas
