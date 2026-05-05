@@ -255,10 +255,14 @@ na API com relatorio de métricas coletado do Prometheus:
 
 ```bash
 # Teste discreto (100 requisições)
-uv run python -m src.api.monitoring.load_tester --requests 100
+uv run python -m src.pipelines.explore_metrics --requests 100
 
 # Teste contínuo (~5 req/s)
-uv run python -m src.api.monitoring.load_tester --contínuous --rate 5
+uv run python -m src.pipelines.explore_metrics --watch --rate 5
+
+# Via Makefile
+make api-load           # batch (default: 100 reqs)
+make api-load-watch     # contínuo (default: 5 req/s, Ctrl+C para parar)
 ```
 
 ## 7. Diagramas de Arquitetura

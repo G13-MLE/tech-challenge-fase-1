@@ -1,7 +1,7 @@
 # Makefile para o TechChallenge Fase 1
 # Comandos essenciais para desenvolvimento
 
-.PHONY: setup test lint format help docker-up docker-down api-up api-down api-test api-load api-load-watch train train-dummy train-mlp train-logistic compare-models analyze tune-mlp recover-model
+.PHONY: setup test lint format help docker-up docker-down api-up api-down api-test api-load api-load-watch train train-dummy train-mlp train-logistic compare-models analyze tune-mlp recover-model validate-model
 
 # Verifica se o arquivo .env existe
 CHECK_ENV := $(shell test -f .env && echo 1 || echo 0)
@@ -38,6 +38,7 @@ help:
 	@echo "  make compare-models  - Comparar MLP vs baselines e gerar relatorio"
 	@echo "  make analyze        - Analisar experimentos e gerar relatorio"
 	@echo "  make recover-model   - Recuperar modelo do MLflow (requer .env)"
+	@echo "  make validate-model  - Validar modelo contra baseline (monitoramento)"
 	@echo ""
 
 # Setup inicial
@@ -192,3 +193,9 @@ recover-model:
 	@echo -n "Tipo de modelo (mlp/logistic/dummy): " && read model_type; \
 	uv run python -m src.inference.recover_model --model-type $$model_type --output models/recovered
 	@echo "Modelo recuperado com sucesso!"
+
+# Validar modelo contra baseline (monitoramento periodico)
+validate-model:
+	@echo "Validando modelo MLP contra baseline..."
+	uv run python -m src.tools.validate_model
+	@echo "Validacao concluida! Relatorio em reports/model_validation.json"

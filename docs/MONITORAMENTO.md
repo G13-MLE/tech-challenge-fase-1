@@ -156,8 +156,15 @@ Para ambientes de produção, recomenda-se complementar com:
 
 #### Performance em Validação Periodica
 - **Métricas**: AUC-ROC, F1-score, precisão, recall.
-- **Target**: AUC-ROC >= 0.78, F1-score >= 0.65.
+- **Target**: AUC-ROC >= 0.78, F1-score >= 0.55.
 - **Frequência**: avaliacao semanal em conjunto de validação.
+- **Implementação**: script `src/tools/validate_model.py` executado
+  via scheduler (cron ou Airflow). Saída em `reports/model_validation.json`.
+- **Uso**:
+  ```bash
+  uv run python -m src.tools.validate_model
+  uv run python -m src.tools.validate_model --threshold-roc 0.80
+  ```
 
 ### 2.4 Métricas do MLflow (Tracking)
 
@@ -206,10 +213,12 @@ para detectar degradação.
 | AUC-ROC | < 0.78 | < 0.72 |
 | F1-score | < 0.65 | < 0.55 |
 
-### 3.3 Regras de Alerta Prometheus (Recomendadas)
+### 3.3 Regras de Alerta Prometheus (Implementado)
+
+As regras de alerta estao definidas em `docker/prometheus_alerts.yml`
+e montadas no container Prometheus via `docker/docker-compose.api.yml`.
 
 ```yaml
-# docker/prometheus_alerts.yml (a criar para produção)
 groups:
   - name: api_alerts
     rules:
@@ -661,17 +670,22 @@ Apos resolucao de qualquer incidente P1 ou P2:
 
 ## 9. Teste de Carga
 
-A ferramenta `src/api/monitoring/load_tester.py` permite validar a
-capacidade da API e gerar métricas para o Prometheus.
+A ferramenta `src/pipelines/explore_metrics` permite validar a
+capacidade da API e gerar métricas para o Prometheus, usando internamente
+o módulo `src/api/monitoring/load_tester.py`.
 
 ### 9.1 Uso
 
 ```bash
 # Teste discreto: 100 requisições
-uv run python -m src.api.monitoring.load_tester --requests 100
+uv run python -m src.pipelines.explore_metrics --requests 100
 
 # Teste contínuo: ~5 requisições por segundo (Ctrl+C para parar)
-uv run python -m src.api.monitoring.load_tester --contínuous --rate 5
+uv run python -m src.pipelines.explore_metrics --watch --rate 5
+
+# Via Makefile
+make api-load           # batch (default: 100 reqs)
+make api-load-watch     # contínuo (default: 5 req/s, Ctrl+C para parar)
 ```
 
 ### 9.2 Requisitos

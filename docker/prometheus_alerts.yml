@@ -1,0 +1,97 @@
+# Regras de alerta Prometheus para Churn Prediction API
+# Referencia: docs/MONITORAMENTO.md Secao 3.3
+#
+# Copiar este arquivo para o container Prometheus ou montar como volume
+# no docker-compose.api.yml para ativar os alertas.
+
+groups:
+  - name: api_alerts
+    rules:
+      - alert: HighErrorRate5xx
+        expr: >
+          (sum(rate(http_requests_total{status_code=~"5.."}[5m]))
+          / sum(rate(http_requests_total[5m]))) > 0.01
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Taxa de erros 5xx acima de 1%"
+          description: >
+            A taxa de erros 5xx esta acima de 1% nos ultimos 5 minutos.
+            Valor atual: {{ $value | humanizePercentage }}
+
+      - alert: HighErrorRate4xx
+        expr: >
+          (sum(rate(http_requests_total{status_code=~"4.."}[5m]))
+          / sum(rate(http_requests_total[5m]))) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Taxa de erros 4xx acima de 1%"
+          description: >
+            A taxa de erros 4xx esta acima de 1% nos ultimos 5 minutos.
+            Valor atual: {{ $value | humanizePercentage }}
+
+      - alert: HighLatencyP95
+        expr: >
+          histogram_quantile(0.95,
+          sum(rate(http_request_duration_seconds_bucket{path="/predict"}[5m]))
+          by (le)) * 1000 > 500
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Latencia p95 /predict acima de 500ms"
+          description: >
+            A latencia p95 do endpoint /predict esta acima de 500ms.
+            Valor atual: {{ $value }}ms
+
+      - alert: HighLatencyP99
+        expr: >
+          histogram_quantile(0.99,
+          sum(rate(http_request_duration_seconds_bucket{path="/predict"}[5m]))
+          by (le)) * 1000 > 2000
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Latencia p99 /predict acima de 2000ms"
+          description: >
+            A latencia p99 do endpoint /predict esta acima de 2000ms.
+            Valor atual: {{ $value }}ms
+
+      - alert: DriftDetected
+        expr: >
+          (sum(rate(drift_detections_total{drift_detected="true"}[5m]))
+          / sum(rate(drift_detections_total[5m]))) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Data drift detectado em mais de 5% das requisicoes"
+          description: >
+            O percentual de requisicoes com data drift superou 5% nos
+            ultimos 10 minutos. Valor atual: {{ $value | humanizePercentage }}
+
+      - alert: SignificantPSI
+        expr: drift_psi_score > 0.25
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PSI significativo detectado na feature {{ $labels.feature }}"
+          description: >
+            O PSI da feature {{ $labels.feature }} esta acima de 0.25,
+            indicando drift severo. Valor atual: {{ $value }}
+
+      - alert: ModeratePSI
+        expr: drift_psi_score > 0.10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PSI moderado detectado na feature {{ $labels.feature }}"
+          description: >
+            O PSI da feature {{ $labels.feature }} esta entre 0.10 e 0.25,
+            indicando drift moderado. Valor atual: {{ $value }}
