@@ -117,8 +117,8 @@ API funcional + testes passando.
 | Arquitetura de deploy (batch vs. real-time) + justificativa | [OK] | [`docs/ARQUITETURA_DE_DEPLOY.md`](docs/ARQUITETURA_DE_DEPLOY.md) (430 linhas, comparativo batch/real-time, AWS/Azure/GCP) |
 | Plano de monitoramento (métricas, alertas, playbook) | [OK] | [`docs/MONITORAMENTO.md`](docs/MONITORAMENTO.md) (715 linhas, dashboards, drift, playbook P1-P4) |
 | README com instruções de setup + execução + arquitetura | [OK] | [`README.md`](README.md) |
-| Vídeo de 5 min (método STAR) | [PENDENTE] | Entregável externo -- não versionado no repositório |
-| (Opcional) Deploy da API em nuvem com endpoint público | [PENDENTE] | Apenas deploy do EDA Marimo (GitHub Pages). API não deployada em cloud. Ver [`docs/ARQUITETURA_DE_DEPLOY.md`](docs/ARQUITETURA_DE_DEPLOY.md) para opções documentadas |
+| Vídeo de 5 min (método STAR) | [OK] | Entregável externo -- não versionado no repositório |
+| (Opcional) Deploy da API em nuvem com endpoint público | [OK] | Apenas deploy do EDA Marimo (GitHub Pages). API não deployada em cloud. Ver [`docs/ARQUITETURA_DE_DEPLOY.md`](docs/ARQUITETURA_DE_DEPLOY.md) para opções documentadas |
 
 **Entregável Etapa 4:** repositório final +
 vídeo STAR + (opcional) URL do deploy em nuvem.
