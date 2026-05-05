@@ -243,6 +243,10 @@ Dicionário de dados:
 
 > Uso: dataset de domínio público para estudo e demonstração. Valide os termos da fonte escolhida antes de uso comercial.
 
+**Nota sobre DVC:** O repositório é **self-contained** -- dataset e artefatos
+(~1MB) estão versionados diretamente no Git. Os arquivos `.dvc` servem
+como metadado de versão; nenhum remote externo é necessário.
+
 ## Instalação e Setup
 
 ### Requisitos
@@ -266,7 +270,7 @@ O comando `make setup` executa:
 
 1. `uv sync` -- instalação de dependências
 2. `pre-commit install` -- hooks de qualidade (ruff, mypy)
-3. Configuração do DVC remote (prompt interativo para URL)
+3. `dvc checkout` -- restaura dados e artefatos do cache local (self-contained)
 
 ### Variáveis de Ambiente
 
@@ -294,7 +298,7 @@ Variáveis essenciais no `.env`:
 | `PREDICTION_SLO_MS` | Limiar de latencia SLO em ms | `500.0` |
 | `GRAFANA_ADMIN_USER` | Usuario admin do Grafana | `admin` |
 | `GRAFANA_ADMIN_PASSWORD` | Senha admin do Grafana | `admin` |
-| `DVC_ONEDRIVE_REMOTE_URL` | URL do remote DVC (OneDrive) | *(vazio)* |
+| `DVC_ONEDRIVE_REMOTE_URL` | Remote DVC (opcional - repo e self-contained) | *(vazio)* |
 
 > Nunca versionar o arquivo `.env` com credenciais reais.
 
@@ -302,8 +306,8 @@ Variáveis essenciais no `.env`:
 
 ### Treinamento de Modelos
 
-Requisitos: `.env` configurado, MLflow rodando (`make docker-up`), dataset
-em `data/raw/`.
+Requisitos: `.env` configurado, MLflow rodando (`make docker-up`). Dataset
+e artefatos já estão versionados no Git (self-contained).
 
 ```bash
 # Treinar todos os modelos sequencialmente

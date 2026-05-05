@@ -1,5 +1,6 @@
 # Data
 data/raw/*
+!data/raw/*.csv
 !data/raw/*.dvc
 !data/raw/.gitignore
 data/processed/*
@@ -70,5 +71,9 @@ notebooks/__marimo__/
 # DVC
 /.dvc/config
 models/*
+!models/*.pt
+!models/*.pkl
+!models/*.csv
+!models/*.json
 !models/*.dvc
 !models/.gitignore

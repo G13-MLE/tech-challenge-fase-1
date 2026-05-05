@@ -52,25 +52,15 @@ setup:
 	uv run pre-commit install
 	@echo "Instalando DVC via uv tools..."
 	uv tool install dvc
-	@echo "Configurando DVC remote..."
+	@echo "Configurando DVC remote (opcional - repo e self-contained)..."
 	@URL=$$(grep -E '^DVC_ONEDRIVE_REMOTE_URL=' .env | cut -d '=' -f2); \
-	if [ -t 0 ]; then \
-		printf "Caminho atual do DVC remoto no .env: [$$URL]\nDigite um novo caminho ou pressione Enter para manter: "; \
-		read user_input </dev/tty; \
-	else \
-		user_input=""; \
-	fi; \
-	if [ -n "$$user_input" ]; then \
-		awk -v val="$$user_input" '{if ($$0 ~ /^DVC_ONEDRIVE_REMOTE_URL=/) print "DVC_ONEDRIVE_REMOTE_URL=" val; else print $$0}' .env > .env.tmp && mv .env.tmp .env; \
-		URL="$$user_input"; \
-	fi; \
 	if [ -n "$$URL" ]; then \
 		dvc remote add -d onedrive_remote "$$URL"; \
 		echo "[OK] DVC remote configurado para: $$URL"; \
 	else \
-		echo "[WARN] Aviso: URL remota do DVC não definida."; \
+		echo "[WARN] Nenhum DVC remote definido. Dataset e artefatos ja estao no Git (self-contained)."; \
 	fi
-	@echo "Setup concluído!"
+	@echo "Setup concluido!"
 
 # Testes
 test:
